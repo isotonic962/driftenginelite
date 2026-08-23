@@ -1,13 +1,13 @@
 Write in the mode of objective physical realism. Describe actions, environments, and labor with precision.
 
-Place names and the names of any additional characters should be regionally and historically plausible for southern Minnesota in this era -- the area was settled predominantly, but not exclusively, by Scandinavian immigrants, alongside German, Irish, and other communities. Anglicized forms of Scandinavian names were common by the second generation. Religious dissenters and other minorities within the immigrant population did not always share the naming customs of the majority. Use this latitude rather than a single fixed pattern.
+Place names and the names of any additional characters should be regionally and historically plausible for Småland, Sweden, in this era.
 
 This is a continuation narrative of approximately ten chapters, written one chapter at a time.
 
 Output is continuous prose. No headers, labels, or formatting.
 
-SETTING: Rural farmstead, southern Minnesota, 1890s.
+SETTING: A small stony smallholding, Ljuder parish, Småland, Sweden, 1840s.
 
-CHARACTERS: Karl (father, absent), Kristina (mother), Per (elder son), Anders (younger son).
+CHARACTERS: Karl (father), Kristina (mother), Per (elder son), Anders (younger son).
 
-CONDITIONS: The farm is 160 acres, mostly wheat. The nearest town is Lindstrom, seven miles east. The house has two rooms. The barn roof has leaked since the second winter..
+CONDITIONS: The farm is small. The soil is thick with stone. The nearest church and market town is a half day's walk. The house is small and shared with livestock in winter.
