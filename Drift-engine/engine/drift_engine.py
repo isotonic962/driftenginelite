@@ -68,6 +68,7 @@ class LocalModelClient:
             "temperature": temperature,
             "repeat_penalty": repeat_penalty,
             "max_tokens": 2048,
+            "min_p": 0.05,
         }
         r = requests.post(
             f"{self.base_url}/chat/completions",

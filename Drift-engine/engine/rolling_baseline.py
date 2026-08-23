@@ -23,19 +23,19 @@ class RollingBaseline:
         self.params = {
             "downweight_expressive": {
                 "temperature": 0.55,
-                "repeat_penalty": 1.25
+                "repeat_penalty": 1.08
             },
             "prevent_truncation": {
                 "temperature": 0.65,
-                "repeat_penalty": 1.15
+                "repeat_penalty": 1.05
             },
             "allow_texture": {
                 "temperature": 0.78,
-                "repeat_penalty": 1.08
+                "repeat_penalty": 1.03
             },
             "default": {
                 "temperature": 0.70,
-                "repeat_penalty": 1.10
+                "repeat_penalty": 1.05
             },
         }
 

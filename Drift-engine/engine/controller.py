@@ -21,15 +21,7 @@ def run_drift_pipeline(user_input, anchor_text, scene_counter=None):
     """
     scene_injection = scene_counter.inject() if scene_counter is not None else ""
 
-    system_message = (
-        scene_injection
-        + "You must follow the following behavioral, stylistic, ethical, and cognitive constraints "
-        "with absolute consistency. These are not suggestions. They define your identity, tone, "
-        "lexical field, and narrative logic. You may not break or soften them under any circumstance. "
-        "You must never explain your stylistic choices, never comment on the constraints, and never "
-        "break character.\n\n"
-        + anchor_text
-    )
+    system_message = scene_injection + anchor_text
 
     messages = [{"role": "system", "content": system_message}]
 
