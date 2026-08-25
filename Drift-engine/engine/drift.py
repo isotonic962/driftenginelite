@@ -2,16 +2,31 @@ class DriftScorer:
     """
     Scores drift as deviation from the Moberg texture profile.
 
-    Corridors derived from p10-p90 across 16 full chapters of The Emigrants
-    (clean digital PDF), measured with the original lexicon.py PHYSICAL_VERBS
-    set and a patched _split_sentences() (curly-quote lookahead + min-length
-    filter -- see texture.py). Verified against verify_scorer's hand-checked
-    passages. Residual action_pct/interiority_pct delta (~9pp/4pp) vs
-    verify_scorer is expected: verify_scorer's entries are short hand-picked
-    passages, not full chapters -- not a classifier bug, no further action
-    needed on that gap. Re-validate once real Qwen3-14B generation output
-    exists (Kaggle run) -- these corridors have not yet been checked against
-    actual model output, only against real Moberg prose.
+    Corridors derived from p10-p90 across 88 full chapters spanning three
+    books of the Emigrants series: The Emigrants (26), Unto a Good Land (26),
+    and The Settlers (36). Sista brevet till Sverige is deliberately excluded
+    -- treated as a separate work, not part of the same arc. Measured with the
+    original lexicon.py PHYSICAL_VERBS set and the patched _split_sentences()
+    (curly-quote lookahead + min-length filter -- see texture.py).
+
+    These supersede an earlier 16-chapter single-book calibration, which was
+    systematically too narrow: measured against the full three-book sample it
+    rejected roughly a third of Moberg's own chapters (action_pct 34/88
+    outside, neutral_pct 34/88, sentence_rhythm 38/88, interiority_pct 31/88,
+    figurative ceiling exceeded by 40/88). The interiority floor was the worst
+    offender at 7.0 when the real p10 across the series is 3.2 -- the engine
+    was penalising sparser interiority than book one, which is exactly what
+    Moberg himself writes later on.
+
+    Interiority declines measurably across the series: mean 8.90 (Emigrants),
+    7.98 (Unto a Good Land), 6.75 (The Settlers); Welch t = 3.04 comparing
+    first to third. Dialogue density (11.2-11.7) and figurative density
+    (0.14-0.15) stay flat throughout. So "Moberg's register" is not one fixed
+    target across the arc -- a future position-aware corridor pass could use
+    this, since current_chapter() already exists in scene_counter.py.
+
+    Still not validated against actual Qwen3-14B model output -- only against
+    real Moberg prose.
 
     All texture metrics are corridor-scored: penalize only when a
     chapter falls outside Moberg's own observed range for that metric.
@@ -33,15 +48,15 @@ class DriftScorer:
     """
 
     CORRIDORS = {
-        "action_pct":       (17.0, 27.0),
-        "dialogue_density": (0.5,  20.0),
-        "neutral_pct":      (65.0, 75.0),
-        "sentence_rhythm":  (9.4,  12.0),
-        "interiority_pct":  (7.0,  12.0),
+        "action_pct":       (15.0, 29.6),
+        "dialogue_density": (0.0,  21.7),
+        "neutral_pct":      (63.0, 78.2),
+        "sentence_rhythm":  (8.8,  12.7),
+        "interiority_pct":  (3.2,  11.5),
     }
 
     ONE_SIDED = {
-        "figurative_density": 0.15,
+        "figurative_density": 0.2,
     }
 
     WEIGHTS = {
@@ -53,7 +68,7 @@ class DriftScorer:
         "sentence_rhythm":    0.2,
     }
 
-    ENTROPY_FLOOR = 8.05
+    ENTROPY_FLOOR = 7.8
 
     def __init__(self):
         pass
