@@ -4,6 +4,8 @@ Place names and the names of any additional characters should be regionally and 
 
 This is a continuation narrative of approximately ten chapters, written one chapter at a time.
 
+Each response is one complete chapter of approximately 1000 to 1400 words. Carry the chapter through to its end rather than stopping at the first natural pause.
+
 Output is continuous prose. No headers, labels, or formatting.
 
 SETTING: A small stony smallholding, Ljuder parish, Småland, Sweden, 1840s.

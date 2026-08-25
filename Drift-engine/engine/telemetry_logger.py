@@ -16,7 +16,27 @@ class TelemetryLogger:
     pre-3.35 without a full table rebuild) -- but log_event() no longer
     reads analysis["sentiment"] / analysis["volatility"] at all, so there
     is no KeyError risk regardless of what DriftAnalyzer returns.
+
+    LENGTH COLUMNS: word_count / output_tokens / finish_reason /
+    template_leak were added because nothing in the pipeline could see
+    output length. Every texture metric is a ratio normalized by sentence
+    or token count, so a 115-word chapter and a 900-word one produce
+    identical drift scores. finish_reason is what separates "the model
+    ended the chapter" from "we hit max_tokens" from "the server ran out
+    of context" -- only the first implicates the LoRA.
     """
+
+    # Columns added after the first databases were created. CREATE TABLE IF
+    # NOT EXISTS silently no-ops on an existing table, so these never
+    # appeared in older files and every INSERT naming them raised
+    # OperationalError. _migrate() adds whatever is missing.
+    ADDED_COLUMNS = {
+        "neutral_pct":    "REAL",
+        "word_count":     "INTEGER",
+        "output_tokens":  "INTEGER",
+        "finish_reason":  "TEXT",
+        "template_leak":  "INTEGER",
+    }
 
     def __init__(self, db_path="moberg_telemetry.db"):
         self.db_path = db_path
@@ -44,13 +64,34 @@ class TelemetryLogger:
                 neutral_pct REAL,
                 dialogue_density REAL,
                 sentence_rhythm REAL,
-                prompt_echo REAL
+                prompt_echo REAL,
+                word_count INTEGER,
+                output_tokens INTEGER,
+                finish_reason TEXT,
+                template_leak INTEGER
             )
         ''')
+        self._migrate(conn)
         conn.commit()
         conn.close()
 
-    def log_event(self, prompt, output, analysis, drift_score, state, texture=None):
+    def _migrate(self, conn):
+        """
+        Add any column missing from a pre-existing engine_logs table.
+
+        Names come from ADDED_COLUMNS, not from caller input, so the
+        f-string here is not an injection surface -- SQLite does not accept
+        bound parameters for identifiers in ALTER TABLE.
+        """
+        c = conn.cursor()
+        existing = {row[1] for row in c.execute("PRAGMA table_info(engine_logs)")}
+        for name, decl in self.ADDED_COLUMNS.items():
+            if name not in existing:
+                c.execute(f"ALTER TABLE engine_logs ADD COLUMN {name} {decl}")
+
+    def log_event(self, prompt, output, analysis, drift_score, state, texture=None,
+                  word_count=None, output_tokens=None, finish_reason=None,
+                  template_leak=None):
         """Call this at the very end of your engine.process() loop."""
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
@@ -63,8 +104,9 @@ class TelemetryLogger:
                 sentiment_raw, volatility_raw, entropy_raw,
                 drift_score, engine_state, mode,
                 figurative_density, action_pct, interiority_pct, neutral_pct,
-                dialogue_density, sentence_rhythm, prompt_echo
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                dialogue_density, sentence_rhythm, prompt_echo,
+                word_count, output_tokens, finish_reason, template_leak
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             timestamp, prompt, output,
             None, None, analysis.get("entropy", 0.0),
@@ -75,7 +117,9 @@ class TelemetryLogger:
             texture.get("neutral_pct", 0) if texture else 0,
             texture.get("dialogue_density", 0) if texture else 0,
             texture.get("sentence_rhythm", 0) if texture else 0,
-            texture.get("prompt_echo", 0) if texture else 0
+            texture.get("prompt_echo", 0) if texture else 0,
+            word_count, output_tokens, finish_reason,
+            None if template_leak is None else int(template_leak)
         ))
 
         conn.commit()

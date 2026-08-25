@@ -17,17 +17,85 @@ class LocalModelClient:
     Model client supporting both Anthropic API and local llama.cpp server.
     Set API_BACKEND=anthropic in .env to use Anthropic, otherwise defaults
     to local llama.cpp endpoint.
+
+    chat() returns a dict, not a bare string:
+        {"text", "finish_reason", "output_tokens", "template_leak"}
+
+    finish_reason is the only thing that distinguishes "the model ended the
+    chapter" from "we cut it off at max_tokens" from "the server ran out of
+    context". Those three have three different fixes and only the first one
+    implicates the LoRA, so it is captured on every call rather than
+    discarded. Same for output_tokens -- every texture metric is a ratio
+    normalized by length, so without this the pipeline cannot see length
+    at all.
     """
-    def __init__(self, base_url=None, model=None, api_key=None):
+
+    # Role/template markers that must never appear in generation output.
+    # If they do, the served chat template does not match the one the model
+    # was trained under -- see _clean().
+    LEAK_PREFIXES = ("assistant\n", "assistant\r\n", "assistant:")
+    LEAK_MARKERS  = ("<|im_start|>", "<|im_end|>", "<|endoftext|>", "</s>")
+
+    _leak_warned = False
+
+    def __init__(self, base_url=None, model=None, api_key=None, max_tokens=None):
         self.backend  = os.getenv("API_BACKEND", "local")
         self.base_url = base_url or os.getenv("API_BASE", "http://127.0.0.1:8080/v1")
         self.api_key  = api_key  or os.getenv("API_KEY", "")
+        # max_tokens is a ceiling on chapter length, so it belongs in config
+        # rather than hard-coded in two places. Raise it and the llama.cpp
+        # server's -c together -- raising either alone just moves the wall.
+        self.max_tokens = int(max_tokens or os.getenv("MAX_TOKENS", "2048"))
         self.model    = model    or os.getenv(
             "API_MODEL",
             "claude-haiku-4-5" if self.backend == "anthropic" else "qwen2.5-3b-instruct-q4_k_m"
         )
         if self.backend == "anthropic":
             self._client = anthropic.Anthropic(api_key=self.api_key)
+
+    def _clean(self, text):
+        """
+        Strip leaked chat-template role markers, and report whether any were
+        found.
+
+        A leak is not cosmetic. If llama.cpp is emitting "assistant\n" into
+        generation output then the template it built the prompt with is not
+        the one the model was trained under, which means the model is also
+        being stopped on the wrong end-of-turn token -- a direct cause of
+        short output. Stripping keeps TextureAnalyzer's sentence
+        classification clean; the returned flag is what tells you the server
+        itself needs fixing (--jinja, or an explicit --chat-template).
+        """
+        cleaned = text or ""
+        leaked = False
+
+        while True:
+            stripped = cleaned.lstrip()
+            hit = next(
+                (p for p in self.LEAK_PREFIXES if stripped.lower().startswith(p)),
+                None,
+            )
+            if hit is None:
+                break
+            cleaned = stripped[len(hit):]
+            leaked = True
+
+        for marker in self.LEAK_MARKERS:
+            if marker in cleaned:
+                cleaned = cleaned.replace(marker, "")
+                leaked = True
+
+        if leaked and not LocalModelClient._leak_warned:
+            print(
+                "[WARN] chat-template leak: role/template markers appeared in "
+                "generation output. The served template does not match the "
+                "model's own, which means the stop token does not either. "
+                "Relaunch llama.cpp with --jinja or an explicit --chat-template "
+                "before drawing any conclusion about the LoRA."
+            )
+            LocalModelClient._leak_warned = True
+
+        return cleaned.strip(), leaked
 
     def chat(self, messages, temperature=0.7, repeat_penalty=1.1):
         if self.backend == "anthropic":
@@ -48,7 +116,7 @@ class LocalModelClient:
 
         kwargs = {
             "model": self.model,
-            "max_tokens": 2048,
+            "max_tokens": self.max_tokens,
             "temperature": temperature,
             "messages": conversation,
         }
@@ -56,7 +124,20 @@ class LocalModelClient:
             kwargs["system"] = system_content
 
         response = self._client.messages.create(**kwargs)
-        return response.content[0].text
+
+        # Join every text block rather than taking content[0] -- indexing the
+        # first block silently drops the response if anything non-text leads.
+        text = "".join(
+            b.text for b in response.content if getattr(b, "type", None) == "text"
+        )
+        cleaned, leaked = self._clean(text)
+
+        return {
+            "text": cleaned,
+            "finish_reason": response.stop_reason,
+            "output_tokens": getattr(response.usage, "output_tokens", None),
+            "template_leak": leaked,
+        }
 
     def _chat_local(self, messages, temperature, repeat_penalty):
         headers = {}
@@ -67,7 +148,7 @@ class LocalModelClient:
             "messages": messages,
             "temperature": temperature,
             "repeat_penalty": repeat_penalty,
-            "max_tokens": 2048,
+            "max_tokens": self.max_tokens,
             "min_p": 0.05,
         }
         r = requests.post(
@@ -76,10 +157,17 @@ class LocalModelClient:
             headers=headers,
         )
         r.raise_for_status()
-        content = r.json()["choices"][0]["message"]["content"]
-        if content.startswith("assistant\n"):
-            content = content[len("assistant\n"):]
-        return content
+        data = r.json()
+        choice = data["choices"][0]
+        cleaned, leaked = self._clean(choice["message"].get("content"))
+        usage = data.get("usage") or {}
+
+        return {
+            "text": cleaned,
+            "finish_reason": choice.get("finish_reason"),
+            "output_tokens": usage.get("completion_tokens"),
+            "template_leak": leaked,
+        }
 
 
 class DriftEngine:
@@ -118,13 +206,31 @@ class DriftEngine:
         self.quadrant = QuadrantClassifier()
         self.baseline = RollingBaseline()
         self.texture = TextureAnalyzer()
+        self.last = None
 
     def process(self, text, messages=None, anchor_text=""):
         if messages is None:
             messages = [{"role": "user", "content": text}]
 
         params, action, avg_action, avg_int = self.baseline.recommend()
-        response_text = self.model.chat(messages, **params)
+        completion = self.model.chat(messages, **params)
+
+        response_text  = completion["text"]
+        finish_reason  = completion.get("finish_reason")
+        output_tokens  = completion.get("output_tokens")
+        template_leak  = completion.get("template_leak", False)
+        word_count     = len(response_text.split())
+
+        # Length is invisible to every other signal in this pipeline: the
+        # texture metrics are all ratios normalized by sentence or token
+        # count, so identical prose at 900 words and 115 words scores the
+        # same drift. This is the only place a short chapter is detectable.
+        if finish_reason in ("length", "max_tokens"):
+            print(
+                f"[WARN] generation stopped at the {self.model.max_tokens}-token "
+                f"cap ({word_count} words) -- the chapter was cut off, not "
+                f"finished. Raise MAX_TOKENS and the llama.cpp -c together."
+            )
 
         texture_data = self.texture.analyze(response_text, text)
         raw_analysis = self.analyzer.analyze(response_text)
@@ -144,7 +250,7 @@ class DriftEngine:
             texture_data.get("interiority_pct", 0.0),
         )
 
-        return {
+        result = {
             "analysis": raw_analysis,
             "texture": texture_data,
             "drift_components": drift_info,
@@ -153,7 +259,16 @@ class DriftEngine:
             "response": response_text,
             "quadrant": quadrant,
             "baseline_action": action,
+            "word_count": word_count,
+            "output_tokens": output_tokens,
+            "finish_reason": finish_reason,
+            "template_leak": template_leak,
         }
+
+        # Kept so callers that only receive the final string (main.generate)
+        # can still read this turn's length/stop metadata.
+        self.last = result
+        return result
 
 
 if __name__ == "__main__":
@@ -178,6 +293,11 @@ if __name__ == "__main__":
             f'act={tex["action_pct"]} int={tex["interiority_pct"]} '
             f'dial={tex["dialogue_density"]} rhythm={tex["sentence_rhythm"]} '
             f'echo={tex["prompt_echo"]}'
+        )
+        print(
+            f'  [LENGTH] words={result["word_count"]} '
+            f'tokens={result["output_tokens"]} '
+            f'finish={result["finish_reason"]}'
         )
         print(
             f'  [DRIFT] score={drift["drift_score"]:.3f} '

@@ -48,6 +48,10 @@ def run_drift_pipeline(user_input, anchor_text, scene_counter=None):
         drift_score=final_drift_score,
         state=current_state,
         texture=texture_data,
+        word_count=result.get("word_count"),
+        output_tokens=result.get("output_tokens"),
+        finish_reason=result.get("finish_reason"),
+        template_leak=result.get("template_leak"),
     )
 
     return final_text
