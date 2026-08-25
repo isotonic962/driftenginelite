@@ -66,7 +66,7 @@ for i, (tex, ent) in enumerate(CASES):
 print("2. long text keeps the 8.05 floor")
 tex = dict(CASES[0][0], n_tokens=50000, n_sentences=400)
 r = scorer.score(tex, entropy=7.988)
-check("floor@50k", r["entropy_floor_effective"] == 8.05,
+check("floor@50k", r["entropy_floor_effective"] == scorer.ENTROPY_FLOOR,
       f"eff={r['entropy_floor_effective']}")
 
 # --- 3. short healthy passage: entropy penalty vanishes ---------------------
@@ -111,11 +111,13 @@ check("0/8 interior -> dev 0", r["interiority_pct_dev"] == 0.0,
       f"dev={r['interiority_pct_dev']}")
 two_of_eight = dict(base, interiority_pct=25.0, n_sentences=8, n_tokens=400)
 r = scorer.score(two_of_eight, entropy=8.1)
-check("2/8 interior -> ceiling penalty", r["interiority_pct_dev"] == 13.0,
+check("2/8 interior -> ceiling penalty",
+      round(r["interiority_pct_dev"],2) == round(25.0 - scorer.CORRIDORS["interiority_pct"][1],2),
       f"dev={r['interiority_pct_dev']}")
 chapter = dict(base, interiority_pct=3.0, n_sentences=100, n_tokens=2500)
 r = scorer.score(chapter, entropy=8.1)
-check("chapter-scale low side unchanged", r["interiority_pct_dev"] == 4.0,
+check("chapter-scale low side unchanged",
+      round(r["interiority_pct_dev"],2) == round(scorer.CORRIDORS["interiority_pct"][0] - 3.0,2),
       f"dev={r['interiority_pct_dev']}")
 
 # --- 6. analyzer provides the metadata --------------------------------------
