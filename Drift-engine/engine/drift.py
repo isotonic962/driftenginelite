@@ -1,3 +1,6 @@
+import math
+
+
 class DriftScorer:
     """
     Scores drift as deviation from the Moberg texture profile.
@@ -55,6 +58,27 @@ class DriftScorer:
 
     ENTROPY_FLOOR = 8.05
 
+    # --- turn-scale corrections (additive; inert when texture dict carries
+    # no length metadata, so chapter-scale behavior is bit-identical) -------
+    #
+    # 1. Entropy is bounded above by log2(n_tokens), so the 8.05 chapter
+    #    floor is mathematically unclearable below ~265 tokens and penalizes
+    #    short turns for being short. When n_tokens is known, the floor
+    #    becomes min(8.05, log2(n_tokens) - ENTROPY_LEN_MARGIN).
+    #    Margin provenance: on 50 curated short passages (real Haruf/
+    #    Lindgren/Niemi + annotation-corpus synthetics), healthy prose sits
+    #    0.06-1.33 bits below its cap (p90 = 1.10). 1.6 passes all of them
+    #    while degenerate looped output falls much further below cap.
+    #    PROVISIONAL until re-fit on real Qwen3 output -- kaggle/calibrate.py
+    #    section 5 emits the fitted margin for each run.
+    ENTROPY_LEN_MARGIN = 1.6
+
+    # 2. Below 9 sentences the interiority corridor (7-12%) is unsatisfiable
+    #    on granularity grounds alone: 0/8 = 0%, 1/8 = 12.5% -- both outside.
+    #    When n_sentences is known and < 9, counts of 0 or 1 interior
+    #    sentences score zero penalty; 2+ keep the normal ceiling penalty.
+    GRANULARITY_MIN_SENTENCES = 9
+
     def __init__(self):
         pass
 
@@ -88,14 +112,31 @@ class DriftScorer:
             components[f"{key}_dev"] = round(penalty, 3)
             drift += penalty * weight
 
+        n_sentences = texture.get("n_sentences")
+        n_tokens = texture.get("n_tokens")
+
         for key, (low, high) in self.CORRIDORS.items():
             actual = texture.get(key, 0.0)
-            penalty = self._corridor_penalty(actual, low, high)
+            if (key == "interiority_pct" and n_sentences
+                    and n_sentences < self.GRANULARITY_MIN_SENTENCES):
+                # short-turn dead zone: 0 or 1 interior sentences is fine;
+                # 2+ keeps the normal ceiling penalty
+                interior_count = round(actual * n_sentences / 100.0)
+                penalty = max(0.0, actual - high) if interior_count >= 2 else 0.0
+            else:
+                penalty = self._corridor_penalty(actual, low, high)
             weight = self.WEIGHTS[key]
             components[f"{key}_dev"] = round(penalty, 3)
             drift += penalty * weight
 
-        entropy_penalty = max(0.0, self.ENTROPY_FLOOR - entropy)
+        effective_floor = self.ENTROPY_FLOOR
+        if n_tokens:
+            effective_floor = min(
+                self.ENTROPY_FLOOR,
+                math.log2(max(2, n_tokens)) - self.ENTROPY_LEN_MARGIN,
+            )
+        components["entropy_floor_effective"] = round(effective_floor, 3)
+        entropy_penalty = max(0.0, effective_floor - entropy)
         entropy_component = round(entropy_penalty * 0.3, 4)
         components["entropy_component"] = entropy_component
         drift += entropy_penalty * 0.3
