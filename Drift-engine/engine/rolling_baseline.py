@@ -40,16 +40,34 @@ class RollingBaseline:
         }
 
     def get_window(self):
+        # Pity-released turns (pity_fired=1) are EXCLUDED from the nudge
+        # window: a successful hard release spikes interiority/figurative
+        # by design, and letting the baseline read that spike would slam
+        # downweight_expressive, re-flatten the output, and rebuild the
+        # pity streak -- a limit cycle. Released turns are still logged
+        # and still count for pity's own monotony window (engine/pity.py),
+        # which measures the actual output stream.
         try:
             conn = sqlite3.connect(self.db_path)
             c = conn.cursor()
-            c.execute("""
-                SELECT action_pct, interiority_pct
-                FROM engine_logs
-                ORDER BY id DESC
-                LIMIT ?
-            """, (self.window,))
-            rows = c.fetchall()
+            try:
+                c.execute("""
+                    SELECT action_pct, interiority_pct
+                    FROM engine_logs
+                    WHERE COALESCE(pity_fired, 0) = 0
+                    ORDER BY id DESC
+                    LIMIT ?
+                """, (self.window,))
+                rows = c.fetchall()
+            except sqlite3.OperationalError:
+                # Older db without the pity_fired column.
+                c.execute("""
+                    SELECT action_pct, interiority_pct
+                    FROM engine_logs
+                    ORDER BY id DESC
+                    LIMIT ?
+                """, (self.window,))
+                rows = c.fetchall()
             conn.close()
             return rows
         except Exception:

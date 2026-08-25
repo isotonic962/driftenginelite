@@ -37,6 +37,10 @@ def generate(user_input, advance_scene=False):
     print(f"  [SCENE] {SCENE.current}/{SCENE.total} (chapter {SCENE.current_chapter()}/10)")
     print(f"  [DRIFT STATE] {round(_engine.state.get_state(), 3)}")
 
+    # Pity state for this turn (streak of flat turns -> soft ramp -> hard release)
+    counter, refractory, _ = _engine.pity._get_state()
+    print(f"  [PITY] counter={counter}/{_engine.pity.hard_at} refractory={refractory}")
+
     return output
 
 

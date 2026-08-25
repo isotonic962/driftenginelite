@@ -38,6 +38,7 @@ def run_drift_pipeline(user_input, anchor_text, scene_counter=None):
     texture_data = result["texture"]
     final_drift_score = result["drift_components"]["drift_score"]
     current_state = result["state"]
+    pity_data = result.get("pity")
 
     memory.add({"user": user_input, "assistant": final_text})
 
@@ -48,6 +49,7 @@ def run_drift_pipeline(user_input, anchor_text, scene_counter=None):
         drift_score=final_drift_score,
         state=current_state,
         texture=texture_data,
+        pity=pity_data,
     )
 
     return final_text

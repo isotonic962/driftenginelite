@@ -7,6 +7,7 @@ load_dotenv()
 from .analyze import DriftAnalyzer
 from .drift import DriftScorer
 from .drift_state import DriftState
+from .pity import PityController
 from .quadrant import QuadrantClassifier
 from .rolling_baseline import RollingBaseline
 from .texture import TextureAnalyzer
@@ -118,12 +119,26 @@ class DriftEngine:
         self.quadrant = QuadrantClassifier()
         self.baseline = RollingBaseline()
         self.texture = TextureAnalyzer()
+        self.pity = PityController()
 
     def process(self, text, messages=None, anchor_text=""):
         if messages is None:
             messages = [{"role": "user", "content": text}]
 
         params, action, avg_action, avg_int = self.baseline.recommend()
+
+        # Pity hook (pre-generation): may ramp params (soft) or inject a
+        # one-scene release directive (hard). See engine/pity.py header.
+        params, pity_injection, pity_pre = self.pity.pre_turn(params)
+        if pity_injection:
+            messages = [dict(m) for m in messages]
+            if messages and messages[0]["role"] == "system":
+                messages[0]["content"] = pity_injection + messages[0]["content"]
+            else:
+                messages.insert(
+                    0, {"role": "system", "content": pity_injection}
+                )
+
         response_text = self.model.chat(messages, **params)
 
         texture_data = self.texture.analyze(response_text, text)
@@ -144,6 +159,24 @@ class DriftEngine:
             texture_data.get("interiority_pct", 0.0),
         )
 
+        # Pity hook (post-measurement): update the flatness streak from
+        # this turn's texture. Runs AFTER telemetry-window reads inside
+        # pre_turn/_monotone but BEFORE this turn is logged -- so the
+        # monotony window never includes the turn being judged.
+        pity_post = self.pity.observe(texture_data)
+        pity_meta = {
+            "stage": pity_pre["stage"],
+            "fired": pity_pre["fired"],
+            "released": pity_pre["released"],
+            "counter": pity_post["counter"],
+            "flat": pity_post["flat"],
+            "starved": pity_post["starved"],
+            "excess": pity_post["excess"],
+            "monotone": pity_post["monotone"],
+            "temperature": params.get("temperature"),
+            "repeat_penalty": params.get("repeat_penalty"),
+        }
+
         return {
             "analysis": raw_analysis,
             "texture": texture_data,
@@ -153,6 +186,7 @@ class DriftEngine:
             "response": response_text,
             "quadrant": quadrant,
             "baseline_action": action,
+            "pity": pity_meta,
         }
 
 

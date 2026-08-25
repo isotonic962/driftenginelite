@@ -47,10 +47,24 @@ class TelemetryLogger:
                 prompt_echo REAL
             )
         ''')
+        # Pity columns, added via ALTER for existing dbs (same
+        # keep-the-schema-compatible policy as the retired sentiment
+        # columns above). pity_fired is read back by RollingBaseline
+        # to exclude release turns from the nudge window.
+        for col, coltype in [
+            ("pity_counter", "INTEGER"),
+            ("pity_stage", "TEXT"),
+            ("pity_fired", "INTEGER"),
+        ]:
+            try:
+                c.execute(f"ALTER TABLE engine_logs ADD COLUMN {col} {coltype}")
+            except sqlite3.OperationalError:
+                pass  # column already exists
         conn.commit()
         conn.close()
 
-    def log_event(self, prompt, output, analysis, drift_score, state, texture=None):
+    def log_event(self, prompt, output, analysis, drift_score, state,
+                  texture=None, pity=None):
         """Call this at the very end of your engine.process() loop."""
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
@@ -63,8 +77,9 @@ class TelemetryLogger:
                 sentiment_raw, volatility_raw, entropy_raw,
                 drift_score, engine_state, mode,
                 figurative_density, action_pct, interiority_pct, neutral_pct,
-                dialogue_density, sentence_rhythm, prompt_echo
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                dialogue_density, sentence_rhythm, prompt_echo,
+                pity_counter, pity_stage, pity_fired
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             timestamp, prompt, output,
             None, None, analysis.get("entropy", 0.0),
@@ -75,7 +90,10 @@ class TelemetryLogger:
             texture.get("neutral_pct", 0) if texture else 0,
             texture.get("dialogue_density", 0) if texture else 0,
             texture.get("sentence_rhythm", 0) if texture else 0,
-            texture.get("prompt_echo", 0) if texture else 0
+            texture.get("prompt_echo", 0) if texture else 0,
+            pity.get("counter") if pity else None,
+            pity.get("stage") if pity else None,
+            (1 if pity.get("fired") else 0) if pity else 0,
         ))
 
         conn.commit()
