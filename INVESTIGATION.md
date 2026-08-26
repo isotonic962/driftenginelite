@@ -11,8 +11,8 @@ a human triggers both. Protocol:
   is the point — it is what stops the next session re-running a dead test.
 - Numbers only. If a claim has no run behind it, mark it `[unverified]`.
 
-Last updated: 2026-08-26 09:15. Variant F trained; eval 2/10 done, stopped.
-RESUME AT: samples 3-10, see RESUME below.
+Last updated: 2026-08-26 09:40. **Variant F eval complete: 10/10. Verdict below.**
+NEXT JOB: the chapter-boundary slicer. See VERDICT.
 Read DESIGN INTENT, THE REAL PROBLEM, and CORPUS VERSIONS first.
 
 ---
@@ -29,7 +29,48 @@ the wrong books" and "rebuild from 88 whole Moberg chapters". Both would train
 the model to reproduce Moberg's own text, which is the thing the design avoids.
 Do not re-propose them.
 
-## RESUME HERE
+## VERDICT — variant F (2026-08-26 09:40)
+
+**The corpus-selection fix was not sufficient. The word-count slicing is the
+defect. The chapter-boundary slicer is the confirmed next job.**
+
+Full 10-sample eval, cap 2560, scale 1.0, fresh RNG per sample:
+
+| | variant E (control, cap 2048) | variant F (v2_1, cap 2560) |
+|---|---|---|
+| stopped on EOS | 5/10 | 5/10 |
+| ran to cap, frac saturated at 0.5 | 5/10 | 5/10 |
+| word count in training range | 0/10 | **0/10** |
+
+frac: [0.032, 0.5, 0.5, 0.04, 0.025, 0.5, 0.5, 0.034, 0.028, 0.5]
+word_count: min 200 / med 1133 / max 2362 · novel_words: min 195 / med 660 / max 1181
+(train ref: n=138, min 893, med 1422, max 1500)
+
+The bimodal 5/5 pattern is **identical** across both variants. Two matched
+10-sample arms, identical eval settings, one variable changed (corpus v1 ->
+v2_1: cleaner selection, better endings, no Swedish, no front matter) — and the
+stopping behaviour did not move at all. What v1 and v2_1 share is word-count
+slicing. That isolates the slicing as the cause about as cleanly as an
+experiment of this size can.
+
+"novel in range: 5/10" in the summary is the saturation artifact (novel = cap/2
+on every capped sample — 1181 ≈ 2362/2); wc in range 0/10 is the honest number.
+`first_repeat_start` was not computed in-run; it can still be extracted from the
+saved sample texts in `/workspace/gen_v6_cap2560.json` with no GPU.
+
+### What the slicer must do (spec)
+
+Cut the same v2_1 sources at their **chapter boundaries** instead of at word
+counts, so every long-form entry ends where its author ended it:
+- use the structural markers in the raw sources (chapter headings, part breaks
+  — the ones stripped from v2 during cleanup) to locate boundaries;
+- strip the heading itself from the assistant text after cutting;
+- keep the exclusive `"Write the next chapter."` key, the single system prompt,
+  and the short-form set unchanged;
+- verify: seam-continuity test near 0%, endings at narrative closes, tokenized
+  max under `max_seq_length`, then retrain with hyperparameters identical to E/F.
+
+## RESUME HERE (superseded — eval completed; kept for the infrastructure notes)
 
 Variant F (v2_1 corpus, hyperparameters identical to E) is **trained**. Eval is
 **2 of 10 done**. Pick up by running samples 3-10 — #1 and #2 are in
