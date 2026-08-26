@@ -11,15 +11,26 @@ a human triggers both. Protocol:
   is the point — it is what stops the next session re-running a dead test.
 - Numbers only. If a claim has no run behind it, mark it `[unverified]`.
 
-Last updated: 2026-08-26, after the RUN 0 scaling falsifier.
+Last updated: 2026-08-26 06:30, after RUN 2 (partial). Read THE REAL PROBLEM first.
 
 ---
 
-## THE PROBLEM
+## THE REAL PROBLEM
 
-Variant E answers `"Write the next chapter."` with 354 words. Every one of the
-139 training instances of that exact string produced 792–1494 words
-(median 1225). No training example on that key was under 792 words.
+**The model composes a chapter, reaches the end, and writes it again verbatim.**
+
+Every long sample in RUN 2 has `frac = 0.5` exactly — the output is two copies of
+the same content — and runs to the token cap rather than stopping. Word count was
+never measuring length. Novel content per sample is ~290 / 696 / 614 / 930 / 844
+words against a training min of 792 and median 1225: slightly short, but in the
+right neighborhood.
+
+This is a **missing-stop** problem, not a length problem. Everything below that
+reads as a length finding should be re-read in that light.
+
+Original framing, superseded: variant E answered `"Write the next chapter."` with
+354 words where all 139 training instances of that string produced 792–1494 words
+(median 1225).
 
 ---
 
@@ -99,10 +110,33 @@ character-for-character repeat of the passage closing paragraph one.
 
 **Word count falls as scale rises.** n=1 per arm at one seed.
 
-### In flight
+### Cap 2048 — RUN 2, adapter-scale sweep (4 samples per arm)
 
-RUN 1 (10 samples @ scale 1.0, cap 2048) and RUN 2 (sweep, 4 each @ 1.0/1.5/2.0).
-Log: `/workspace/gen_v5_cap2048.log` · JSON: `/workspace/gen_v5_cap2048.json`
+| scale | words | stop | maxrepeat | frac |
+|---|---|---|---|---|
+| 1.0 #1 | 290 | EOS | 4 | 0.014 |
+| 1.0 #2 | 1391 | CAP | 695 | **0.5** |
+| 1.0 #3 | 1228 | CAP | 614 | **0.5** |
+| 1.0 #4 | 1859 | CAP | 929 | **0.5** |
+| 1.5 #1 | 81 | EOS | 6 | 0.074 |
+| 1.5 #2 | 123 | EOS | 6 | 0.049 |
+| 1.5 #3 | 89 | EOS | 5 | 0.056 |
+| 1.5 #4 | 12 | EOS | 0 | 0.0 |
+| 2.0 #1 | 1688 | CAP | 844 | **0.5** |
+
+`frac = 0.5` on five independent samples. Every sample that goes long does so by
+duplicating itself and then hitting the cap; every sample that stops on EOS is
+clean and short. The two behaviours are the same defect seen from both sides.
+
+**Interrupted after 2.0 #1** — the pod recycled (`env@5c1e2d7f5b1a` →
+`env@e9b248f85411`) and `/workspace/gen_v5_cap2048.json` was never written.
+The log is the only copy: `/workspace/gen_v5_cap2048.log`. **Copy it off the box.**
+
+### Cap 2048 — RUN 1 (10 samples @ scale 1.0)
+
+Only #10 recovered from the visible log: 447 tok, EOS, 414 words.
+**Samples #1–#9 are in the log and have not been extracted.** This is the real
+scale-1.0 distribution and the most valuable unread data on the box.
 
 ---
 
@@ -117,6 +151,10 @@ Log: `/workspace/gen_v5_cap2048.log` · JSON: `/workspace/gen_v5_cap2048.json`
    an explicit prompt instruction — which is evidence *for* weak adapter influence.
 4. **Adapter under-applied / needs higher scale.** Scale up *shortens* output
    (354 → 126 → 109). The direction is opposite to the hypothesis.
+8. **Scale as a brevity dial (the successor to 4).** Killed by RUN 2: the
+   relationship is non-monotonic — 1.0 goes long, 1.5 gives 81/123/89/12 words,
+   2.0 goes long again. The falsifier's 354 → 126 → 109 was three unlucky draws
+   at n=1, as flagged at the time. There is no dial. Stop chasing scale.
 5. **Degenerate or stuck decode.** A == B but C ≠ D ≠ A. Sampling varies.
 6. **Training-side truncation.** 1494 w ≈ 2000 tok, fits inside `max_seq_length=2560`.
 7. **Inference cap.** Was a real confound at 1200 (it censored C). Now 2048,
@@ -126,44 +164,52 @@ Log: `/workspace/gen_v5_cap2048.log` · JSON: `/workspace/gen_v5_cap2048.json`
 
 ## LIVE HYPOTHESIS
 
-**The adapter learned brevity, and scale amplifies it.**
+**The model never learned to end a chapter — EOS is missing from the training
+targets, or masked out of the labels.**
 
-126 and 109 words land *inside* the short-form training range (median 51,
-max 171). Scale 1.0 sits at 354, between the two modes.
+Predicts everything observed: it composes the chapter (learned), reaches the
+boundary with no stop behaviour, repeats because the context supports it, and
+runs to the cap. Samples that *do* stop are the base model's EOS firing rather
+than a learned one — which is why every short sample is clean and every long one
+loops. The two failure modes are one defect.
 
-600 of 739 EOS tokens in the corpus sit at the end of a short response. Every
-example contributes exactly one EOS regardless of length, so the stop prior is
-governed by **entry count** (81% short) while register is governed by **token
-share** (83.5% long). The key being exclusive did not gate EOS.
+Check: does the SFT collator append `eos_token_id` after each assistant text, and
+is that position left unmasked in `labels` (not `-100`)? Static read of the
+training script, no GPU.
 
-The loop fits the same picture: at scale 1.0 the adapter is weak and output
-drifts into base-model degeneration (long verbatim repeats); at 2.0 the adapter
-dominates, no loop, but it terminates early because early termination is what it
-learned. Scale is a dial between base degeneration and trained brevity. Neither
-end is a chapter.
+Still possible as a *contributing* factor, not the primary: 600 of 739 EOS tokens
+in the corpus sit at the end of a short response. Every example contributes one
+EOS regardless of length, so the stop prior is governed by **entry count** (81%
+short) while register is governed by **token share** (83.5% long).
 
 ---
 
 ## OPEN — in priority order
 
-1. **How was the training loss normalized — per-sequence or per-token?**
+0. **Copy `/workspace/gen_v5_cap2048.log` off the box.** The container has already
+   been recycled once mid-run and the JSON was lost with it. Do this first.
+1. **Is `eos_token_id` appended to the training targets and unmasked in the
+   labels?** See LIVE HYPOTHESIS. Static read, no GPU.
+2. **Extract RUN 1 samples #1–#9 from the log.**
+3. **How was the training loss normalized — per-sequence or per-token?**
    If per-sequence, the 600 short examples outweigh the 139 long ones 4.3:1 in
    gradient, and the 83.5% token share never reached the optimizer. That would
    explain the whole result and it is a flag, not a corpus rebuild.
    *Static read of the training script. No GPU. Do this first.*
-2. **Add scale 0.5 to the sweep.** Turns a two-point trend into a line. If word
-   count keeps rising as scale falls, the adapter is unambiguously the source.
-3. **What are the 600 short entries for?** If they preserve general
+4. **What are the 600 short entries for?** If they preserve general
    instruction-following they stay but must be a much smaller fraction. If
    vestigial, they are diluting the only behavior being trained for.
-4. **Register check `[unverified]`.** Is the long-form prose actually 1840s
+5. **Register check `[unverified]`.** Is the long-form prose actually 1840s
    Småland third person? Not directly inspected. L057/L058 openings
    (`Chapter 32 - Thursday, April 7`, PROLOGUE/EPILOGUE markers) look like a
    different source. Read the prose of 6–8 long-form entries.
 
-If the sweep confirms the live hypothesis, the fix is rebalancing by **entry
-count**, not token count: downsample short-form hard, upsample long-form to
-match, or mask loss on the short entries entirely.
+Do **not** spend more GPU time on scale sweeps — that hypothesis is dead (KILLED 8).
+The remaining open items are all static reads of the training script.
+
+If the EOS check comes back clean and the defect is instead the stop prior, the
+fix is rebalancing by **entry count**, not token count: downsample short-form
+hard, upsample long-form to match, or mask loss on the short entries entirely.
 
 ---
 
