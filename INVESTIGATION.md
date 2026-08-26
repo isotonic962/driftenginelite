@@ -11,8 +11,8 @@ a human triggers both. Protocol:
   is the point — it is what stops the next session re-running a dead test.
 - Numbers only. If a claim has no run behind it, mark it `[unverified]`.
 
-Last updated: 2026-08-26, after direct analysis of final_training_corpus_1.json.
-Read DESIGN INTENT and THE REAL PROBLEM first.
+Last updated: 2026-08-26, corpus v2_1 accepted for training.
+Read DESIGN INTENT, THE REAL PROBLEM, and CORPUS VERSIONS first.
 
 ---
 
@@ -27,6 +27,44 @@ Two proposals have already been made and withdrawn against this: "the corpus is
 the wrong books" and "rebuild from 88 whole Moberg chapters". Both would train
 the model to reproduce Moberg's own text, which is the thing the design avoids.
 Do not re-propose them.
+
+## CORPUS VERSIONS
+
+| | v1 | v2 english | **v2_1 (training on this)** |
+|---|---|---|---|
+| records | 739 | 704 | 702 |
+| long-form | 139 | 140 | 138 |
+| long-form total words | 164,244 | 168,855 | **187,472** |
+| median entry | 1225 | 1225 | **1422** |
+| wholly-Swedish records | 39 | 0 | 0 |
+| structural headings mid-text | 5 | 0 | 0 |
+| drift median / max | 5.19 / 33.17 | 5.10 / 33.17 | **4.87 / 25.64** |
+| pairs continuing across the seam | 72% | 74% | **67%** |
+
+v2_1 sources: Haruf (18), Lagerlöf *Gösta Berling* + *Nils Holgersson* (19),
+Bengtsson *Long Ships* (11), Petterson *Out Stealing Horses* (11), Boye
+*Kallocain* (10), Larsson (10), Lapidus (10), Strindberg *Röda rummet* (9),
+and roughly 16 Moberg entries (L053-L068). **The Moberg inclusion is
+unconfirmed against the stated design intent below — ask before acting on it.**
+Nesser is gone; he was the 33.17.
+
+**Slicing is still word-count based in v2_1.** 37% of entries fall in the single
+1450-1499 bin against a hard stop at 1500 — that is a raised word target, not a
+chapter boundary. But endings read materially better by eye than in v2, and the
+"ends mid-flow" regex used earlier over-flags (it counts any final clause
+containing as/and/when), so discount that metric. The seam test is the reliable
+one.
+
+**DECISION (2026-08-26): train on v2_1 rather than build the chapter-boundary
+slicer first.** The selection change is large enough to measure, and the run
+discriminates: if `frac` drops off 0.5 the improved endings were sufficient and
+the slicer is unnecessary; if `frac` stays pinned at 0.5 the slicer becomes the
+next job with evidence behind it. Cheaper than building it on spec.
+
+Hyperparameters held identical to variant E so the corpus is the only variable.
+Pre-flight check: tokenize all 138 long-form entries and confirm none exceeds
+`max_seq_length=2560` — the median rose to 1422 words, and anything truncated
+loses its EOS, reintroducing the bug on exactly the longest entries.
 
 ## THE REAL PROBLEM
 
