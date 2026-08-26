@@ -11,7 +11,8 @@ a human triggers both. Protocol:
   is the point — it is what stops the next session re-running a dead test.
 - Numbers only. If a claim has no run behind it, mark it `[unverified]`.
 
-Last updated: 2026-08-26, corpus v2_1 accepted for training.
+Last updated: 2026-08-26 09:15. Variant F trained; eval 2/10 done, stopped.
+RESUME AT: samples 3-10, see RESUME below.
 Read DESIGN INTENT, THE REAL PROBLEM, and CORPUS VERSIONS first.
 
 ---
@@ -27,6 +28,62 @@ Two proposals have already been made and withdrawn against this: "the corpus is
 the wrong books" and "rebuild from 88 whole Moberg chapters". Both would train
 the model to reproduce Moberg's own text, which is the thing the design avoids.
 Do not re-propose them.
+
+## RESUME HERE
+
+Variant F (v2_1 corpus, hyperparameters identical to E) is **trained**. Eval is
+**2 of 10 done**. Pick up by running samples 3-10 — #1 and #2 are in
+`/workspace/gen_v6_cap2560.log` and must not be redone.
+
+Three things to change before relaunching:
+
+1. **Launch detached.** Two runs have now been lost to infrastructure: the
+   container recycled at 06:26 (`5c1e2d7f5b1a` -> `e9b248f85411`) and the eval
+   was SIGHUP'd at 09:08 when the browser connection dropped, because it ran in
+   the session's background shell. Use
+   `tmux new-session -d -s eval '<cmd> >> <log> 2>&1'`, or `setsid nohup ... &`.
+2. **Append each sample as a JSON line on completion.** Both lost runs died
+   before the final array write and had to be scraped back out of the log.
+3. **Add `first_repeat_start`** and stop reading `novel`. See below.
+
+### `frac = 0.5` is metric saturation, not a measurement
+
+The longest span that can appear twice in a text of length T is T/2. When the
+whole output is one block repeated, `maxrepeat` hits that ceiling and `frac`
+reads exactly 0.500 **at any cap**. So `novel = words - maxrepeat` collapses to
+cap/2 and carries no information about what the model composed.
+
+This already produced one false positive: variant F #2 reported
+`novel=1177, novel_in[893,1500]=True`, which looks like a chapter of trained
+length. 1177 is half of 2560. Raising the cap to 4096 would have "produced" a
+1900-word chapter by the same arithmetic.
+
+Replace with **`first_repeat_start`** — the token index at which the output
+first begins reproducing earlier text. That is the composition length, and it is
+cap-independent. If it comes back at 1100-1200 on the loopers, the model is
+writing chapter-length prose and only failing to terminate, which is the good
+version of this outcome.
+
+## RESULTS — variant F (v2_1 corpus, cap 2560)
+
+Pre-flight PASS. 702 records tokenized as the trainer does (Qwen3-14B template,
+`add_generation_prompt=False`): long-form n=138, min 1145 / median 1778 / p95
+1967 / **max 2176** tokens against `max_seq_length=2560`. **Zero entries
+truncated.** Longest is L006 (1470 w -> 2176 tok). All 16 hyperparameters diffed
+identical to `train_drift_sft_v5.py`; only `DATASET_PATH` and `OUTPUT_DIR` differ.
+
+| # | tok | stop | words | maxrepeat | frac | note |
+|---|---|---|---|---|---|---|
+| 1 | 416 | EOS | 374 | 12 | 0.032 | clean, below the 893 floor |
+| 2 | 2560 | CAP | 2354 | 1177 | 0.500 | saturated — see above |
+
+Both variant E modes survive into F. 8 samples outstanding.
+
+### CONTROL ARM — variant E, cap 2048, 10 samples (recovered from log, zero GPU)
+
+**5/10 CAP with frac exactly 0.5 · 5/10 EOS and short · 0/10 in the training
+range.** Perfectly bimodal. Variant E never once produced a chapter of trained
+length that terminated on its own. This is the matched baseline for variant F.
 
 ## CORPUS VERSIONS
 
@@ -303,12 +360,14 @@ collator):
    meaningless place. *Best fit for the observed bimodality* — it predicts both
    the random early stop and the failure to stop at real closure. The other 30
    entries were trimmed to complete sentences.
-2. **EOS absent from the targets.** Collator never appended `eos_token_id`.
-   Predicts mostly never-stops, so it fits the loop but not the clean early stops.
-3. **EOS masked out of the labels** (`-100` at that position). Same effect as 2.
-4. **EOS truncated away by `max_seq_length=2560`.** 1494 w ≈ 2000 tok on average
-   and fits — but that is an average, and any entry crossing 2560 loses its EOS
-   to truncation. Would silently affect only the longest entries.
+2. ~~**EOS absent from the targets.**~~ **KILLED** by the v2_1 pre-flight:
+   `<|im_end|>` sits as the penultimate token in 702/702 records, and in
+   **739/739 for variant E's corpus too** (the Qwen template appends a trailing
+   newline after it). EOS was always in the targets, on both corpora.
+3. **EOS masked out of the labels** (`-100` at that position). Not verified, but
+   the token is present, so this is the only remaining collator-side candidate.
+4. ~~**EOS truncated away by `max_seq_length`.**~~ **KILLED** by the same
+   pre-flight: max 2176 tokens against a 2560 limit, zero entries truncated.
 
 Either way, samples that *do* stop are the base model's EOS firing rather than a
 learned one — which is why every short sample is clean and every long one loops.
