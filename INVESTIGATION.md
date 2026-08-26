@@ -11,9 +11,22 @@ a human triggers both. Protocol:
   is the point — it is what stops the next session re-running a dead test.
 - Numbers only. If a claim has no run behind it, mark it `[unverified]`.
 
-Last updated: 2026-08-26 06:30, after RUN 2 (partial). Read THE REAL PROBLEM first.
+Last updated: 2026-08-26, after direct analysis of final_training_corpus_1.json.
+Read DESIGN INTENT and THE REAL PROBLEM first.
 
 ---
+
+## DESIGN INTENT — read before proposing corpus changes
+
+The LoRA is **deliberately not trained on Moberg**. It is trained on Swedish
+literature influenced by him or on him; setting comes from the anchor
+(Småland 1840s, Karl/Kristina/Per/Anders) and texture is steered by the
+DriftScorer corridors. The goal is a story *like* his, not his story.
+
+Two proposals have already been made and withdrawn against this: "the corpus is
+the wrong books" and "rebuild from 88 whole Moberg chapters". Both would train
+the model to reproduce Moberg's own text, which is the thing the design avoids.
+Do not re-propose them.
 
 ## THE REAL PROBLEM
 
@@ -63,6 +76,56 @@ L0/L1-prefixed IDs, user turn == `"Write the next chapter."`, assistant ≥200 w
 
 Assistant texts beginning with `"Chapter"`: **2 of 739** (L057, L058 — both
 long-form, both violate the system prompt's no-headers line). 0.27%.
+
+### What the corpus actually contains — measured, not assumed
+
+~39 source runs across the 139 long-form entries: Backman *Ove*, Söderberg
+*Doctor Glas*, Lapidus *Easy Money*, Haruf *Plainsong*, Larsson *Millennium*,
+Lagerlöf *Nils Holgersson* / *Gösta Berling*, Nesser *Van Veeteren*, Strindberg
+*Röda rummet*, and one Moberg entry (L139).
+
+Register scan: 62% contain modern-life vocabulary (car 84, phone 31, computer 16),
+8% contain 1840s rural vocabulary. **This is expected under the design** — setting
+is the anchor's job, not the corpus's. It is not a defect on its own.
+
+### DriftScorer run over the training corpus (median drift per source run)
+
+The project's own instrument, pointed at its own training data for the first time.
+
+| run | n | drift | source |
+|---|---|---|---|
+| L139 | 1 | **1.37** | Moberg |
+| L069–L079 | 11 | 2.67 | Lagerlöf, *Nils Holgersson* |
+| L002–L010 | 9 | 3.67 | Backman, *Ove* |
+| L011–L026 | 16 | 3.97 | Lapidus, *Easy Money* |
+| L040–L061 | 22 | 5.82 | Larsson, *Millennium* |
+| L085–L090 | 6 | **15.82** | Nesser, *Van Veeteren* |
+| L091 | 1 | **24.87** | Nesser |
+
+Corpus-wide long-form drift: median 5.19, min 0.07, max 33.17.
+
+Two results worth keeping: **Moberg's own entry scores third-best of 39 runs**,
+which validates the corridors; and the contemporary crime/comic material
+(Lapidus, Backman) scores *well* while the psychological crime (Nesser) scores
+worst. The corridors discriminate on technique, not period — judging the corpus
+by author or publication date gives the wrong answer. An earlier eyeball critique
+of the selection was wrong on exactly this point.
+
+**Caveat:** `drift.py` still holds the 16-chapter corridors, not the 88-chapter
+recalibration. Ranking is valid; absolute values are not. Re-run with current numbers.
+
+### CONTAMINATION — 29 records to drop
+
+- **22 untranslated Swedish records.** Long-form: L111, L119, L129, L137, L138.
+  Short-form: 17 in the R259–R296 range. For an English-target model this is
+  straight contamination, and it is why they score 20+ — the English
+  `PHYSICAL_VERBS` lexicon cannot parse them, so every texture metric collapses
+  toward zero and the drift score measures nothing.
+- **7 front-matter records.** L057, L058, L069, L072, L103 carry structural
+  headings mid-text (`PROLOGUE`, `PART 1`, `Book 6`); L023 and L064 are editorial
+  or critical prose. L058 is *not* a maths textbook — it is the tail of one
+  *Millennium* novel running into the prologue and mathematical epigraph of the
+  next. A slicing artifact, not a foreign document.
 
 ### Long-form provenance — the 139 are not homogeneous
 
@@ -177,8 +240,25 @@ scale-1.0 distribution and the most valuable unread data on the box.
 
 ## LIVE HYPOTHESIS
 
-**The model never learned where a chapter ends.** Four candidate mechanisms,
-all answered by one check (see below):
+**The model never learned where a chapter ends, because no training entry ends
+where a chapter ends.**
+
+CONFIRMED by direct analysis of the corpus — this is no longer a hypothesis:
+
+- 85 of 138 consecutive long-form pairs share proper nouns across the seam. The
+  entries are sequential ~1200-word **slices of continuous novels**, not chapters.
+- 58 of 139 end on a continuation clause; 15 end inside dialogue.
+- 96% end on terminal punctuation and the length distribution is smooth with no
+  cap pile-up — so the *trimming* was competent. The defect is that a word-count
+  cut point is not a narrative close.
+
+EOS was therefore trained onto arbitrary boundaries. The model learned that a
+chapter ends somewhere around 1200 words for no discernible reason, which
+produces exactly the observed behaviour: EOS fires early at a random point, or
+fails to fire where closure should be and the model loops to the cap.
+
+Superseded sub-hypotheses (the mechanism was right, the cause was not the
+collator):
 
 1. **EOS at arbitrary positions.** 109 of 139 long-form entries were trimmed by
    word count and end mid-paragraph, so their EOS sits at a narratively
@@ -194,6 +274,9 @@ all answered by one check (see below):
 
 Either way, samples that *do* stop are the base model's EOS firing rather than a
 learned one — which is why every short sample is clean and every long one loops.
+
+The EOS-config checks below are **no longer the priority** — the corpus explains
+the behaviour without them. Run them only if the re-slice fails to fix it.
 
 ### THE CHECK — one pass, answers all four
 
@@ -222,12 +305,28 @@ short) while register is governed by **token share** (83.5% long).
 
 ## OPEN — in priority order
 
-0. **Copy `/workspace/gen_v5_cap2048.log` off the box.** The container has already
+0. **THE FIX — one training cycle, not three.** A retrain is unavoidable because
+   the 22 Swedish records must come out, so everything else rides along with it
+   at near-zero marginal cost:
+   1. drop the 29 contaminated records
+   2. **re-slice the same sources at their chapter boundaries** instead of at word
+      counts — same books, same selection principle, but every entry then ends
+      where its author ended it
+   3. optionally drop the worst runs by drift score (Nesser)
+   4. train once, re-eval at cap 2048
+
+   **No-retrain stopgap, available today:** the model already produces
+   chapter-shaped prose (696 / 614 / 930 novel words) and then duplicates it.
+   `frac` and `maxrepeat` locate the seam exactly — generate to 2048 and truncate
+   where the duplication starts. That yields a clean ~700-word chapter from
+   variant E as it stands and unblocks engine work. It gives clean *text*, not a
+   well-formed *ending* — the same arbitrary boundary, moved to inference.
+
+1. **Copy `/workspace/gen_v5_cap2048.log` off the box.** The container has already
    been recycled once mid-run and the JSON was lost with it. Do this first.
-1. **Run THE CHECK** (see LIVE HYPOTHESIS) over all 139 long-form records.
-   One pass, four hypotheses, no GPU.
 2. **Extract RUN 1 samples #1–#9 from the log.**
-3. **How was the training loss normalized — per-sequence or per-token?**
+3. **Re-run the DriftScorer table above with the 88-chapter corridors.**
+4. **How was the training loss normalized — per-sequence or per-token?**
    If per-sequence, the 600 short examples outweigh the 139 long ones 4.3:1 in
    gradient, and the 83.5% token share never reached the optimizer. That would
    explain the whole result and it is a flag, not a corpus rebuild.
