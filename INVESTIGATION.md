@@ -29,7 +29,73 @@ the wrong books" and "rebuild from 88 whole Moberg chapters". Both would train
 the model to reproduce Moberg's own text, which is the thing the design avoids.
 Do not re-propose them.
 
-## VERDICT — variant F (2026-08-26 09:40)
+## READING THE ACTUAL TEXTS — variant F samples (2026-08-26, corrects the verdict below)
+
+The ten generated texts were read directly (gen_v6_cap2560.json, committed on
+this branch). Three findings, one of which corrects an earlier claim.
+
+### 1. The frac=0.5 interpretation was WRONG — there is no "chapter then repeat"
+
+Earlier notes said the model "composes a chapter, reaches the end, and writes it
+again." The texts show otherwise. The capped samples are **short-period
+sentence loops**, not whole-text doublings: the model writes 150-450 words of
+real prose, then falls into a single sentence or small block repeated to the cap
+("He thought about how he had felt when he had been with her." ~150 times;
+"I have never had a moment of clarity since I was twenty." ~180 times).
+frac lands on 0.5 because any long periodic tail makes the longest repeated
+substring ≈ half the text — it was never evidence of duplication of a whole
+chapter. Loop onset, measured per capped sample:
+
+| # | words | composed before loop | loop period |
+|---|---|---|---|
+| 2 | 2354 | **447** | 13-word sentence |
+| 3 | 1861 | **200** | 46-word dialogue block |
+| 6 | 2151 | (quasi-loop with variation — crisps/beer/biscuits ritual, no strict period) |
+| 7 | 2362 | **146** | 12-word sentence |
+| 10 | 2263 | **233** | 47-word block |
+
+### 2. True composition length is ~150-450 words on ALL ten samples
+
+EOS samples: 200, 252, 263, 374, 405 words. Loopers before onset: 146-447.
+**No sample sustains composition anywhere near the training minimum of 893.**
+So the model does not "compose long and fail to stop" — it composes SHORT and
+then either stops (base EOS) or loops. Two distinct defects:
+- **no sustained composition** past ~450 words, despite 138 training examples
+  of 893-1500-word sustained prose;
+- **no stop at closure** — the alternative to stopping is a loop, not more chapter.
+
+The loops are the corpus's own style turned pathological: the clean samples use
+controlled anaphora ("He thought of the lake. He thought of the girl…" — and
+end), the loopers enter the same device and never escape. Incremental
+repetition is a real feature of the v2_1 sources; a weak adapter reproduces the
+device without the exit.
+
+### 3. The style transfer WORKED
+
+All ten are spare, physical, restrained, domestic — recognizably the v2_1
+register (Petterson/Haruf line). No headers this time (variant E printed
+"Chapter 27"; every F sample starts in-scene). Sample 5 is a complete miniature
+with a genuine ending: "In the morning she packed her suitcase and left. He
+didn't go with her." The corpus swap did exactly what it was supposed to do to
+the voice. Register is no longer an open problem.
+
+### Implications for next moves
+
+- The **slicer remains necessary** (EOS placement) but is now known to be
+  **insufficient alone**: it does not explain composition dying at ~300 words.
+- **Sustainment** points back at adapter capacity: attention-only q/k/v/o,
+  r=alpha=16, 2 epochs. The scale sweep ruled out inference-time scaling, not
+  training strength. Next training cycle should pair the sliced corpus with
+  MLP targets (gate/up/down) and/or 3 epochs — one cycle, both fixes, then the
+  same 10-sample eval.
+- **Cheap inference mitigation available now:** the loops are 12-47-word
+  periods that repetition_penalty=1.05 cannot break. A DRY sampler /
+  no-repeat-ngram constraint at generation time would sever exactly this
+  failure mode and costs no training. Worth adding to the eval harness as a
+  separate arm (same samples with and without) to see what the model does when
+  the loop exit is forced.
+
+## VERDICT — variant F (2026-08-26 09:40) — length/stop numbers still valid; interpretation superseded above
 
 **The corpus-selection fix was not sufficient. The word-count slicing is the
 defect. The chapter-boundary slicer is the confirmed next job.**
