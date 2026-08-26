@@ -11,8 +11,8 @@ a human triggers both. Protocol:
   is the point — it is what stops the next session re-running a dead test.
 - Numbers only. If a claim has no run behind it, mark it `[unverified]`.
 
-Last updated: 2026-08-26 09:40. **Variant F eval complete: 10/10. Verdict below.**
-NEXT JOB: the chapter-boundary slicer. See VERDICT.
+Last updated: 2026-08-26, after seven autonomous pod runs (EXPERIMENT_LOG.snapshot.md).
+The slicer verdict below is SUPERSEDED — read SEVEN-RUN RECONCILIATION first.
 Read DESIGN INTENT, THE REAL PROBLEM, and CORPUS VERSIONS first.
 
 ---
@@ -95,7 +95,99 @@ the voice. Register is no longer an open problem.
   separate arm (same samples with and without) to see what the model does when
   the loop exit is forced.
 
-## VERDICT — variant F (2026-08-26 09:40) — length/stop numbers still valid; interpretation superseded above
+## SEVEN-RUN RECONCILIATION — supersedes the slicer verdict
+
+Seven headless sessions ran on the pod against AUTONOMOUS_TASK.md and measured,
+deterministically, most of what the sections below inferred from samples. Full
+lab notebook: `EXPERIMENT_LOG.snapshot.md` (snapshot taken before pod commit
+`6781c1b` fixed an anaphora-instrument boundary bug, so anaphora magnitudes are
+pre-fix; the EOS-hazard results are unaffected. The pod's local commits were
+never pushed — the snapshot is the only copy on this branch).
+
+### The three results that rewrite this file (seventh run, teacher-forced EOS hazard)
+
+1. **The adapter's stop decision is NOT broken.** Teacher-forced on the 138 real
+   chapter texts at the chapter prompt: S(250) = 0.998, E[stop] 1264 of a true
+   1420. On brief targets the adapter *installed* a stop the base lacks
+   (terminal P(EOS) 0.481 vs base 0.000). EOS is fine.
+2. **The short-stop schedule is prompt-keyed, not global.** Same 138 texts, only
+   the user turn swapped chapter→brief: E[stop] 1264 → 215, paired 138/138,
+   median −918 words (diff-in-diff vs base's −150).
+3. **The anaphoric ladder is the single cause of both failure modes.** The
+   adapter cannot SUSTAIN a chapter: generation collapses into anaphora at
+   ~250 novel words. Exit A: the ladder lands a cadence ("And then he cried."),
+   hazard 0.2–0.97, correct EOS on degenerate text. Exit B: the ladder closes
+   into a cycle, hazard decays ~190x, runs to the cap. "Ran to the cap" is
+   *stopped being able to stop*, and the EOS events on short samples were real
+   stop decisions (median terminal P 0.72), not sampling luck.
+
+**Consequence: "make the model emit EOS at the end of a long response" was the
+wrong target all along.** Fixing EOS placement would only convert exit-B loops
+into exit-A stops at ~300 words.
+
+### Verdicts in this file that are now dead or corrected
+
+- **"Slicing isolated as the cause" (VERDICT below): DEAD.** The E-vs-F matched
+  arms showed the corpus change didn't move stopping — a legitimate inference,
+  but the mechanism behind it was wrong. EOS-at-arbitrary-boundaries was never
+  the defect; the adapter stops correctly on-manifold. OPEN 4 (chapter
+  re-slice) is HELD, not the next job.
+- **"Two defects: no sustained composition and no stop at closure": half right.**
+  Sustainment yes; the stop is intact.
+- **Token-share figure corrected:** long-form is **75.5%** of tokens for v2_1
+  (72.5% for v1), not 83.5%. Entry share 19.7%/18.8%. Direction right,
+  magnitude wrong on record.
+- **Training setup cleared (fifth run):** padding-free was silently
+  auto-enabled by unsloth but is mathematically equivalent here (packed-sequence
+  mask verified on the real collator); loss is token-weighted; EOS present,
+  untruncated, unmasked — every named mechanism measured and dead. Pin
+  `padding_free` explicitly in the next run regardless.
+- **Register (fourth/fifth runs, pre-fix instrument):** at scale 1.0 the adapter
+  AMPLIFIES rather than imitates — interiority ~3x past corpus median
+  (19.4 vs 7.0, survives length-matching at the 87.5th percentile), anaphora
+  ~20x past corpus median from a base that shows 0.0, labour vocabulary cut
+  ~4x (p=0.005), prompt adherence 4/4 base → 0/10. Scale 0.25 is register-
+  indistinguishable from base. Dose-response with no measured good operating
+  point.
+- **The brief branch WORKS (sixth run).** Held-out scene briefs: 3/3 EOS,
+  33–96 words against a corpus band of 9–171, right register, zero anaphora,
+  and the adapter corrects base's 4.75x overshoot to 1.10x. Nothing was
+  destroyed; the chapter branch was never learned. "Cannot end a chapter" →
+  **"cannot sustain one."**
+
+### ENGINE CONSEQUENCE — measured now, not a risk
+
+The engine passes brief-shaped `user_input` straight through, and the stop
+schedule is keyed to prompt shape. **A working adapter will give the engine
+~57-word scenes, not chapters.** The canonicalize-the-user-turn change
+(send the chapter key as the instruction, pass scene direction as context)
+is now required, not hypothetical — with the caveat that today the chapter key
+buys the ladder, so it lands after the sustainment fix.
+
+### Corpus defect found by the brief branch (needs sign-off)
+
+107 of 564 brief targets (19.0%) contain flattened markdown blockquote
+markers (` > `, 500 occurrences); 0/138 chapter targets do. The adapter
+reproduces them mid-sentence. Strip is cheap; it is a corpus edit.
+
+### The live queue, in the log's own priority order
+
+1. **Anaphora hazard on corpus text** (free, static, no sign-off): is the
+   adapter's ladder probability elevated even when teacher-forcing supplies the
+   real continuation? Elevated → the pressure is in the weights → training-side
+   fix (OPEN 3 rebalance, or lower scale). Not elevated → pure self-conditioning
+   runaway → the fix is generation-side after all. This measurement names the
+   intervention; run it before any retrain.
+2. **OPEN 3 — branch rebalancing** is the leading training-side candidate,
+   reframed: 138 examples may be too few to learn a 1420-word structure, and
+   each entry carries exactly one EOS demonstration, so the 4.1:1 entry-count
+   advantage reaches the stop prior even under token-weighted loss. Needs
+   sign-off.
+3. **Do not retrain for EOS.** The token is not the defect (five sessions
+   running).
+4. `> ` strip (sign-off), pin `padding_free`, OPEN 4 slicer held.
+
+## VERDICT — variant F (2026-08-26 09:40) — SUPERSEDED by the reconciliation above — length/stop numbers still valid; interpretation superseded above
 
 **The corpus-selection fix was not sufficient. The word-count slicing is the
 defect. The chapter-boundary slicer is the confirmed next job.**
