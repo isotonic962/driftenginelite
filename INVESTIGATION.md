@@ -64,6 +64,19 @@ L0/L1-prefixed IDs, user turn == `"Write the next chapter."`, assistant ≥200 w
 Assistant texts beginning with `"Chapter"`: **2 of 739** (L057, L058 — both
 long-form, both violate the system prompt's no-headers line). 0.27%.
 
+### Long-form provenance — the 139 are not homogeneous
+
+| range | n | how it was trimmed | endings |
+|---|---|---|---|
+| L001–L109 | 109 | by word count, no regard for scene boundaries | mostly mid-paragraph |
+| the other 30 | 30 | trailing incomplete sentences removed | clean |
+
+**This is the most likely mechanical cause of the missing stop** and it was not
+known when the earlier hypotheses were formed. An entry that ends mid-sentence
+places its EOS at a narratively arbitrary position; 109 of 139 examples teaching
+that would produce exactly the observed bimodality — EOS fires at a random early
+point, or fails to fire where closure actually is.
+
 ### Training — variant E
 
 attention-only q/k/v/o · 2 epochs · dropout 0.05 · r=16 alpha=16 (scale 1.0) ·
@@ -164,18 +177,41 @@ scale-1.0 distribution and the most valuable unread data on the box.
 
 ## LIVE HYPOTHESIS
 
-**The model never learned to end a chapter — EOS is missing from the training
-targets, or masked out of the labels.**
+**The model never learned where a chapter ends.** Four candidate mechanisms,
+all answered by one check (see below):
 
-Predicts everything observed: it composes the chapter (learned), reaches the
-boundary with no stop behaviour, repeats because the context supports it, and
-runs to the cap. Samples that *do* stop are the base model's EOS firing rather
-than a learned one — which is why every short sample is clean and every long one
-loops. The two failure modes are one defect.
+1. **EOS at arbitrary positions.** 109 of 139 long-form entries were trimmed by
+   word count and end mid-paragraph, so their EOS sits at a narratively
+   meaningless place. *Best fit for the observed bimodality* — it predicts both
+   the random early stop and the failure to stop at real closure. The other 30
+   entries were trimmed to complete sentences.
+2. **EOS absent from the targets.** Collator never appended `eos_token_id`.
+   Predicts mostly never-stops, so it fits the loop but not the clean early stops.
+3. **EOS masked out of the labels** (`-100` at that position). Same effect as 2.
+4. **EOS truncated away by `max_seq_length=2560`.** 1494 w ≈ 2000 tok on average
+   and fits — but that is an average, and any entry crossing 2560 loses its EOS
+   to truncation. Would silently affect only the longest entries.
 
-Check: does the SFT collator append `eos_token_id` after each assistant text, and
-is that position left unmasked in `labels` (not `-100`)? Static read of the
-training script, no GPU.
+Either way, samples that *do* stop are the base model's EOS firing rather than a
+learned one — which is why every short sample is clean and every long one loops.
+
+### THE CHECK — one pass, answers all four
+
+For each of the 139 long-form records, tokenized **exactly as the trainer does**
+(same chat template, same `max_seq_length`, same collator), report:
+
+1. total token count, and whether it hit 2560
+2. whether the final content token is `<|im_end|>` / `eos_token_id`
+3. whether the label at that position is unmasked (not `-100`)
+4. the last ~80 characters of the decoded assistant text
+5. whether it ends on terminal punctuation
+
+Then cross-tabulate by ID range: **L001–L109 vs the other 30.**
+
+Static, no GPU. Note that "do the loops concentrate in L001–L109" is *not*
+runnable as stated — loops occur at inference and carry no training-entry
+provenance. Inspecting how the entries end is the observable form of the same
+question.
 
 Still possible as a *contributing* factor, not the primary: 600 of 739 EOS tokens
 in the corpus sit at the end of a short response. Every example contributes one
@@ -188,8 +224,8 @@ short) while register is governed by **token share** (83.5% long).
 
 0. **Copy `/workspace/gen_v5_cap2048.log` off the box.** The container has already
    been recycled once mid-run and the JSON was lost with it. Do this first.
-1. **Is `eos_token_id` appended to the training targets and unmasked in the
-   labels?** See LIVE HYPOTHESIS. Static read, no GPU.
+1. **Run THE CHECK** (see LIVE HYPOTHESIS) over all 139 long-form records.
+   One pass, four hypotheses, no GPU.
 2. **Extract RUN 1 samples #1–#9 from the log.**
 3. **How was the training loss normalized — per-sequence or per-token?**
    If per-sequence, the 600 short examples outweigh the 139 long ones 4.3:1 in
@@ -205,7 +241,12 @@ short) while register is governed by **token share** (83.5% long).
    different source. Read the prose of 6–8 long-form entries.
 
 Do **not** spend more GPU time on scale sweeps — that hypothesis is dead (KILLED 8).
-The remaining open items are all static reads of the training script.
+The remaining open items are all static reads.
+
+**None of the four mechanisms requires rebuilding the corpus.** EOS absent or
+masked → collator config. EOS at mid-sentence → re-trim the 109 to the last
+complete paragraph, a text operation on material already in hand. Truncated at
+2560 → raise the limit. The material is fine; how it was terminated is not.
 
 If the EOS check comes back clean and the defect is instead the stop prior, the
 fix is rebalancing by **entry count**, not token count: downsample short-form
