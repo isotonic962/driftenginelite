@@ -11,8 +11,8 @@ a human triggers both. Protocol:
   is the point — it is what stops the next session re-running a dead test.
 - Numbers only. If a claim has no run behind it, mark it `[unverified]`.
 
-Last updated: 2026-08-26, after seven autonomous pod runs (EXPERIMENT_LOG.snapshot.md).
-The slicer verdict below is SUPERSEDED — read SEVEN-RUN RECONCILIATION first.
+Last updated: 2026-08-26. ANAPHORA-HAZARD RESULT IS IN (post-6781c1b instrument):
+the ladder is a self-conditioning runaway, not weight pressure. Read that section first.
 Read DESIGN INTENT, THE REAL PROBLEM, and CORPUS VERSIONS first.
 
 ---
@@ -94,6 +94,60 @@ the voice. Register is no longer an open problem.
   failure mode and costs no training. Worth adding to the eval harness as a
   separate arm (same samples with and without) to see what the model does when
   the loop exit is forced.
+
+## ANAPHORA-HAZARD VERDICT (post-fix instrument) — the fork is resolved: GENERATION-SIDE
+
+Run: `logs/anaphora_hazard_run.log`, data `eval/anaphora_hazard.json` (7481
+boundaries, 4310s, K=6-token candidates, control openings ≥8 sentences away,
+fixed boundary rule — chapter control pool 400 space-prefixed + 147
+paragraph-initial). All four falsifiers passed (base arm bit-identical to
+disable_adapter; adapter arm live at 14.375; prefix token-identical; bf16 route
+noise zero-mean, max median |Δ| 0.037 nats).
+
+ELEV = (adapter's log-odds of re-using the just-used sentence opening vs a
+control opening) − (base's same). Positive = the adapter adds repeat pressure.
+
+| arm | n | ELEV median | adapter pref | base pref |
+|---|---|---|---|---|
+| chapter@chapter (corpus text) | 5288 | **−0.641** | +10.74 | +11.54 |
+| brief@brief | 1854 | −2.842 | +9.50 | +11.91 |
+| selftext, EOS gens | 138 | −0.498 | +6.46 | +7.28 |
+| **selftext, CAP gens PRE-LOOP** | 30 | **+0.642** | +4.21 | +3.88 |
+| selftext, CAP gens in-loop | 170 | −2.559 | +5.47 | +7.75 |
+
+Per-entry sign test on corpus text: **25/138** chapters have positive median
+ELEV. On-manifold, the adapter is *less* anaphora-prone than base.
+
+**The one positive cell is the birthplace of every loop.** At boundaries on the
+adapter's own text just before loop entry, the repeat option sits **0.78 nats
+below the true continuation for the adapter vs 5.69 for base** — a ~4.9-nat
+difference-in-differences exactly where the loops start. In relative terms: on
+its own off-manifold prose the adapter rates "repeat the opening I just used"
+at ~1/3 the probability of continuing normally, where base rates it ~1/300.
+At temperature 0.7 that option gets sampled eventually; once taken, the loop
+locks — in-loop, even BASE prefers the just-used opening at +7.75, consistent
+with the seventh run's finding that both models are trapped inside a cycle.
+
+**Verdict: the ladder pressure is NOT in the weights on real text. It is a
+self-conditioning runaway that becomes competitive only on the adapter's own
+degraded prose.** The seventh run's fork resolves to its second branch: the fix
+is generation-side, and the sampling question the standing task closed is
+formally reopened by this measurement.
+
+### What this makes the next step (cheap, and now justified rather than guessed)
+
+Ten chapter-prompt samples with a repetition guard — `no_repeat_ngram_size≈6`
+or a DRY sampler — same seeds, cap 2560, scored on length, register, and
+anaphora with the existing instruments. The guard converts exit-B (cap loop)
+into *something*; this run predicts it will be exit-A-like clean stops at
+~250-450 words, since sustainment is still absent. That output — short, clean,
+right register — is then the honest baseline for deciding whether OPEN 3
+(rebalance toward chapters, more chapter examples) is worth a training run to
+buy the remaining length.
+
+What this does NOT do: create 1400-word chapters. The sustainment gap (sixth/
+seventh runs) is untouched by a sampler guard. Loops and length are now
+formally separate problems with separate fixes.
 
 ## SEVEN-RUN RECONCILIATION — supersedes the slicer verdict
 

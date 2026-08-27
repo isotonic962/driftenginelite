@@ -1,0 +1,108 @@
+system sha256  : ed40b81db82c04bf
+chapter targets: 138   brief targets: 564   selftext: 10
+K = 6 tokens per candidate
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/443 [00:00<?, ?it/s]Loading weights:   0%|          | 1/443 [00:02<17:24,  2.36s/it]Loading weights:   0%|          | 2/443 [00:05<20:50,  2.84s/it]Loading weights:   1%|          | 4/443 [00:05<08:32,  1.17s/it]Loading weights:   3%|▎         | 12/443 [00:06<01:59,  3.60it/s]Loading weights:   3%|▎         | 15/443 [00:06<01:32,  4.63it/s]Loading weights:   5%|▌         | 23/443 [00:06<00:48,  8.62it/s]Loading weights:   6%|▌         | 26/443 [00:06<00:44,  9.29it/s]Loading weights:   8%|▊         | 35/443 [00:06<00:27, 14.85it/s]Loading weights:   9%|▊         | 38/443 [00:07<00:26, 15.05it/s]Loading weights:  10%|█         | 46/443 [00:07<00:21, 18.56it/s]Loading weights:  12%|█▏        | 53/443 [00:07<00:16, 24.30it/s]Loading weights:  13%|█▎        | 59/443 [00:07<00:16, 23.69it/s]Loading weights:  14%|█▍        | 63/443 [00:07<00:15, 24.66it/s]Loading weights:  15%|█▌        | 68/443 [00:09<00:34, 10.91it/s]Loading weights:  17%|█▋        | 76/443 [00:09<00:22, 16.35it/s]Loading weights:  18%|█▊        | 80/443 [00:09<00:21, 16.54it/s]Loading weights:  19%|█▉        | 84/443 [00:09<00:19, 18.45it/s]Loading weights:  20%|██        | 90/443 [00:09<00:16, 20.78it/s]Loading weights:  21%|██        | 93/443 [00:10<00:18, 19.15it/s]Loading weights:  23%|██▎       | 101/443 [00:10<00:13, 25.25it/s]Loading weights:  24%|██▎       | 105/443 [00:10<00:14, 23.37it/s]Loading weights:  25%|██▌       | 112/443 [00:10<00:12, 26.98it/s]Loading weights:  26%|██▌       | 116/443 [00:10<00:12, 25.25it/s]Loading weights:  27%|██▋       | 120/443 [00:10<00:11, 27.35it/s]Loading weights:  28%|██▊       | 124/443 [00:11<00:11, 26.79it/s]Loading weights:  29%|██▊       | 127/443 [00:11<00:14, 22.38it/s]Loading weights:  30%|███       | 134/443 [00:11<00:10, 28.44it/s]Loading weights:  31%|███       | 138/443 [00:11<00:11, 25.73it/s]Loading weights:  33%|███▎      | 145/443 [00:11<00:10, 29.08it/s]Loading weights:  34%|███▎      | 149/443 [00:12<00:11, 25.07it/s]Loading weights:  35%|███▍      | 155/443 [00:12<00:11, 25.20it/s]Loading weights:  36%|███▌      | 158/443 [00:12<00:13, 21.10it/s]Loading weights:  37%|███▋      | 164/443 [00:12<00:10, 26.39it/s]Loading weights:  38%|███▊      | 167/443 [00:12<00:11, 24.25it/s]Loading weights:  38%|███▊      | 170/443 [00:13<00:13, 20.44it/s]Loading weights:  40%|███▉      | 177/443 [00:13<00:10, 25.61it/s]Loading weights:  41%|████      | 180/443 [00:13<00:11, 22.87it/s]Loading weights:  42%|████▏     | 186/443 [00:13<00:08, 29.30it/s]Loading weights:  43%|████▎     | 190/443 [00:13<00:11, 21.57it/s]Loading weights:  44%|████▍     | 197/443 [00:13<00:08, 28.73it/s]Loading weights:  45%|████▌     | 201/443 [00:14<00:09, 24.43it/s]Loading weights:  46%|████▋     | 205/443 [00:14<00:08, 26.92it/s]Loading weights:  47%|████▋     | 209/443 [00:14<00:07, 29.51it/s]Loading weights:  48%|████▊     | 213/443 [00:15<00:22, 10.08it/s]Loading weights:  50%|█████     | 222/443 [00:15<00:13, 16.30it/s]Loading weights:  51%|█████     | 226/443 [00:15<00:13, 16.33it/s]Loading weights:  53%|█████▎    | 233/443 [00:16<00:10, 20.55it/s]Loading weights:  53%|█████▎    | 237/443 [00:16<00:10, 19.02it/s]Loading weights:  55%|█████▌    | 244/443 [00:16<00:08, 22.60it/s]Loading weights:  56%|█████▌    | 247/443 [00:16<00:09, 20.48it/s]Loading weights:  58%|█████▊    | 255/443 [00:16<00:07, 25.52it/s]Loading weights:  58%|█████▊    | 258/443 [00:17<00:10, 18.17it/s]Loading weights:  60%|██████    | 266/443 [00:17<00:07, 23.24it/s]Loading weights:  61%|██████    | 269/443 [00:17<00:08, 19.86it/s]Loading weights:  62%|██████▏   | 276/443 [00:17<00:06, 24.00it/s]Loading weights:  63%|██████▎   | 279/443 [00:18<00:07, 21.24it/s]Loading weights:  64%|██████▍   | 284/443 [00:18<00:06, 25.50it/s]Loading weights:  65%|██████▌   | 288/443 [00:18<00:05, 26.76it/s]Loading weights:  66%|██████▌   | 292/443 [00:18<00:06, 24.95it/s]Loading weights:  67%|██████▋   | 299/443 [00:18<00:05, 27.74it/s]Loading weights:  68%|██████▊   | 302/443 [00:19<00:05, 24.04it/s]Loading weights:  69%|██████▉   | 307/443 [00:19<00:04, 28.83it/s]Loading weights:  70%|███████   | 311/443 [00:19<00:05, 25.10it/s]Loading weights:  71%|███████   | 314/443 [00:19<00:04, 25.80it/s]Loading weights:  72%|███████▏  | 321/443 [00:19<00:04, 29.06it/s]Loading weights:  73%|███████▎  | 325/443 [00:19<00:05, 23.58it/s]Loading weights:  75%|███████▍  | 331/443 [00:20<00:04, 24.76it/s]Loading weights:  75%|███████▌  | 334/443 [00:20<00:04, 22.65it/s]Loading weights:  77%|███████▋  | 343/443 [00:20<00:03, 28.56it/s]Loading weights:  78%|███████▊  | 346/443 [00:20<00:03, 24.37it/s]Loading weights:  80%|███████▉  | 354/443 [00:20<00:03, 28.36it/s]Loading weights:  81%|████████  | 357/443 [00:21<00:03, 24.16it/s]Loading weights:  82%|████████▏ | 364/443 [00:21<00:02, 27.16it/s]Loading weights:  83%|████████▎ | 367/443 [00:21<00:02, 27.47it/s]Loading weights:  84%|████████▎ | 370/443 [00:21<00:02, 26.59it/s]Loading weights:  85%|████████▍ | 376/443 [00:21<00:02, 27.40it/s]Loading weights:  86%|████████▌ | 379/443 [00:21<00:02, 23.16it/s]Loading weights:  86%|████████▋ | 383/443 [00:22<00:02, 26.20it/s]Loading weights:  87%|████████▋ | 386/443 [00:22<00:02, 24.89it/s]Loading weights:  88%|████████▊ | 389/443 [00:22<00:02, 18.71it/s]Loading weights:  90%|████████▉ | 398/443 [00:22<00:01, 28.20it/s]Loading weights:  91%|█████████ | 402/443 [00:22<00:01, 25.68it/s]Loading weights:  92%|█████████▏| 409/443 [00:23<00:01, 27.97it/s]Loading weights:  93%|█████████▎| 412/443 [00:23<00:01, 23.88it/s]Loading weights:  95%|█████████▍| 420/443 [00:24<00:01, 12.61it/s]Loading weights:  97%|█████████▋| 430/443 [00:24<00:00, 18.54it/s]Loading weights:  98%|█████████▊| 434/443 [00:24<00:00, 18.70it/s]Loading weights: 100%|██████████| 443/443 [00:24<00:00, 17.85it/s]
+adapter /workspace/drift_sft_out_v6/adapter
+  r=16 alpha=16 targets=['k_proj', 'o_proj', 'q_proj', 'v_proj'] scaling=1.0 across 160 layers
+falsifier 3 : chapter prefix = 54 tokens, token-identical to recorded eval arms
+falsifier 1 : max|logits(0.0) - logits(disable_adapter)| = 0.000e+00
+falsifier 2 : max|logits(1.0) - logits(0.0)|           = 14.375
+  -> both arms live.
+
+ctrl pools : chapter space-prefixed 400 / paragraph-initial 147
+
+===== ARM chapter@chapter  n=138 =====
+  [1/138] L001 bnds=40 arm_total=40  running median elevation = -0.679 nats (60s)
+  [11/138] L011 bnds=40 arm_total=440  running median elevation = -0.355 nats (296s)
+  [21/138] L021 bnds=40 arm_total=840  running median elevation = -0.341 nats (518s)
+  [31/138] L031 bnds=34 arm_total=1197  running median elevation = -0.461 nats (726s)
+  [41/138] L041 bnds=40 arm_total=1554  running median elevation = -0.454 nats (938s)
+  [51/138] L051 bnds=40 arm_total=1954  running median elevation = -0.547 nats (1173s)
+  [61/138] L061 bnds=40 arm_total=2354  running median elevation = -0.574 nats (1399s)
+  [71/138] L071 bnds=39 arm_total=2748  running median elevation = -0.546 nats (1621s)
+  [81/138] L081 bnds=39 arm_total=3097  running median elevation = -0.551 nats (1831s)
+  [91/138] L091 bnds=40 arm_total=3427  running median elevation = -0.568 nats (2025s)
+  [101/138] L101 bnds=40 arm_total=3827  running median elevation = -0.600 nats (2258s)
+  [111/138] L111 bnds=40 arm_total=4211  running median elevation = -0.655 nats (2481s)
+  [121/138] L121 bnds=40 arm_total=4611  running median elevation = -0.652 nats (2705s)
+  [131/138] L131 bnds=40 arm_total=5008  running median elevation = -0.638 nats (2933s)
+  [138/138] L138 bnds=40 arm_total=5288  running median elevation = -0.641 nats (3097s)
+
+===== ARM brief@brief  n=564 =====
+  [11/564] R231 bnds=9 arm_total=33  running median elevation = -1.935 nats (3115s)
+  [21/564] R339 bnds=2 arm_total=62  running median elevation = -2.129 nats (3130s)
+  [31/564] R336 bnds=4 arm_total=113  running median elevation = -1.935 nats (3155s)
+  [41/564] R238 bnds=6 arm_total=148  running median elevation = -1.800 nats (3173s)
+  [51/564] R010 bnds=3 arm_total=190  running median elevation = -1.339 nats (3196s)
+  [61/564] R204 bnds=3 arm_total=216  running median elevation = -1.648 nats (3210s)
+  [62] R206: UNUSABLE, skipped
+  [81/564] R105 bnds=4 arm_total=253  running median elevation = -1.924 nats (3233s)
+  [91/564] R066 bnds=2 arm_total=262  running median elevation = -1.993 nats (3240s)
+  [111/564] R069 bnds=8 arm_total=329  running median elevation = -1.993 nats (3275s)
+  [121/564] R154 bnds=2 arm_total=354  running median elevation = -2.020 nats (3290s)
+  [138] R320: UNUSABLE, skipped
+  [141/564] R318 bnds=3 arm_total=418  running median elevation = -2.020 nats (3322s)
+  [146] R033: UNUSABLE, skipped
+  [151/564] R035 bnds=3 arm_total=433  running median elevation = -2.079 nats (3331s)
+  [161/564] R171 bnds=5 arm_total=464  running median elevation = -2.092 nats (3348s)
+  [171/564] R225 bnds=2 arm_total=500  running median elevation = -2.020 nats (3367s)
+  [181/564] R210 bnds=1 arm_total=523  running median elevation = -1.993 nats (3380s)
+  [191/564] R095 bnds=7 arm_total=565  running median elevation = -1.993 nats (3403s)
+  [192] R161: UNUSABLE, skipped
+  [201/564] R166 bnds=1 arm_total=587  running median elevation = -2.020 nats (3415s)
+  [211/564] R064 bnds=3 arm_total=627  running median elevation = -1.975 nats (3436s)
+  [221/564] R088 bnds=4 arm_total=646  running median elevation = -2.020 nats (3447s)
+  [231/564] R106 bnds=6 arm_total=668  running median elevation = -2.129 nats (3461s)
+  [241/564] R055 bnds=4 arm_total=710  running median elevation = -2.198 nats (3483s)
+  [251/564] LA002 bnds=7 arm_total=750  running median elevation = -2.230 nats (3504s)
+  [261/564] N004 bnds=10 arm_total=807  running median elevation = -2.235 nats (3534s)
+  [271/564] B003 bnds=13 arm_total=845  running median elevation = -2.346 nats (3554s)
+  [281/564] K003 bnds=1 arm_total=882  running median elevation = -2.357 nats (3574s)
+  [291/564] S002 bnds=3 arm_total=925  running median elevation = -2.346 nats (3597s)
+  [301/564] S014 bnds=4 arm_total=955  running median elevation = -2.357 nats (3614s)
+  [311/564] S026 bnds=2 arm_total=985  running median elevation = -2.346 nats (3631s)
+  [321/564] S037 bnds=3 arm_total=1016  running median elevation = -2.357 nats (3648s)
+  [331/564] S048 bnds=6 arm_total=1052  running median elevation = -2.398 nats (3667s)
+  [341/564] S060 bnds=3 arm_total=1081  running median elevation = -2.418 nats (3684s)
+  [351/564] S072 bnds=1 arm_total=1105  running median elevation = -2.501 nats (3698s)
+  [361/564] S085 bnds=3 arm_total=1133  running median elevation = -2.595 nats (3715s)
+  [371/564] S098 bnds=2 arm_total=1164  running median elevation = -2.648 nats (3732s)
+  [381/564] S109 bnds=3 arm_total=1184  running median elevation = -2.711 nats (3745s)
+  [391/564] S123 bnds=1 arm_total=1217  running median elevation = -2.742 nats (3763s)
+  [401/564] S136 bnds=3 arm_total=1249  running median elevation = -2.786 nats (3781s)
+  [411/564] S157 bnds=1 arm_total=1276  running median elevation = -2.786 nats (3796s)
+  [421/564] S180 bnds=2 arm_total=1311  running median elevation = -2.786 nats (3815s)
+  [431/564] S110 bnds=4 arm_total=1338  running median elevation = -2.804 nats (3831s)
+  [441/564] S202 bnds=5 arm_total=1386  running median elevation = -2.856 nats (3856s)
+  [451/564] S213 bnds=2 arm_total=1414  running median elevation = -2.812 nats (3872s)
+  [461/564] S229 bnds=2 arm_total=1441  running median elevation = -2.848 nats (3887s)
+  [471/564] S245 bnds=1 arm_total=1468  running median elevation = -2.850 nats (3903s)
+  [481/564] S264 bnds=3 arm_total=1495  running median elevation = -2.863 nats (3918s)
+  [491/564] S287 bnds=7 arm_total=1524  running median elevation = -2.868 nats (3935s)
+  [501/564] S239 bnds=6 arm_total=1558  running median elevation = -2.863 nats (3954s)
+  [511/564] S268 bnds=5 arm_total=1601  running median elevation = -2.850 nats (3976s)
+  [521/564] S286 bnds=7 arm_total=1659  running median elevation = -2.836 nats (4005s)
+  [531/564] S303 bnds=4 arm_total=1714  running median elevation = -2.786 nats (4033s)
+  [541/564] S313 bnds=4 arm_total=1763  running median elevation = -2.757 nats (4058s)
+  [551/564] S323 bnds=3 arm_total=1809  running median elevation = -2.757 nats (4083s)
+  [561/564] S333 bnds=3 arm_total=1843  running median elevation = -2.836 nats (4102s)
+  [564/564] S336 bnds=4 arm_total=1855  running median elevation = -2.836 nats (4109s)
+
+===== ARM selftext  n=10 =====
+  [1/10] gen1 bnds=30 arm_total=30  running median elevation = -0.535 nats (4122s)
+  [10/10] gen10 bnds=40 arm_total=338  running median elevation = -1.716 nats (4310s)
+
+falsifier 4 : TRUE via teacher-forced pass vs TRUE via the spliced route
+  The two routes differ only in chunk shape, so they differ only by bf16
+  reduction order. Repeating either route is bit-identical, so this must
+  come out ZERO-MEAN and small, not merely small.
+  chapter@chapter  base     L001     n=  40 mean -0.0095  median +0.0000  median|.| 0.0346  max|.| 0.1945
+  chapter@chapter  adapter  L001     n=  40 mean +0.0183  median +0.0030  median|.| 0.0333  max|.| 0.1619
+  selftext         base     gen1     n=  30 mean -0.0090  median +0.0006  median|.| 0.0321  max|.| 0.2227
+  selftext         adapter  gen1     n=  30 mean +0.0155  median +0.0083  median|.| 0.0375  max|.| 0.1663
+  -> zero-mean bf16 route noise, worst median|diff| = 0.0375 nats on a 6-token joint. ELEV uses the SPLICED route for both ANA1 and CTRL
+     in both models, so this noise is common-mode there; R mixes routes and
+     carries it as a zero-mean term.
+
+Saved /workspace/anaphora_hazard.json  (7481 boundaries, 4310s total)
