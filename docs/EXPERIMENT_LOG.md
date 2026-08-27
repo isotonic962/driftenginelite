@@ -3,8 +3,13 @@
 Lab notebook from seven headless Claude Code sessions on the RunPod pod,
 running against `AUTONOMOUS_TASK.md` under `--max-turns 100`. Copied here from
 `/workspace/driftenginelite/Drift-engine/EXPERIMENT_LOG.md`. The eighth entry
-was analyzed off-pod from the uploaded `anaphora_hazard.json` and its run log
-(`docs/logs/anaphora_hazard_run.log`).
+was analyzed off-pod from the uploaded `anaphora_hazard.json` (preserved at
+`eval/anaphora_hazard.json`) and its run log (`logs/anaphora_hazard_run.log`).
+Two sessions analyzed that JSON in parallel — this entry, and the
+ANAPHORA-HAZARD VERDICT section that commit `a825aed` added to INVESTIGATION.md
+on `claude/short-output-investigation-iose1e`. They agree on every measured
+number; where their verdict sentences differed, the entry below is the
+reconciled verdict and supersedes both.
 
 **Snapshot caveat.** This copy was taken before commit `6781c1b` ("Fix a
 boundary rule that made the anaphora instrument blind to the ladder"). The
@@ -41,8 +46,10 @@ phenomenon. The EOS-hazard results are unaffected. Re-run pending.
 Consequence: "make the model emit EOS at the end of a long response" is the
 wrong target. Fixing EOS would only convert exit-B loops into exit-A stops at
 ~300 words. And "retrain to remove the repeat pressure" is equally wrong — the
-eighth run shows there is no repeat pressure to remove; what remains is the
-sustain deficit on the chapter branch.
+eighth run shows there is no repeat pressure to remove. Loops and length are
+formally divorced: loops → a sampling-time repetition guard (to be validated,
+predicted outcome ~250–450-word clean stops); length → training on the chapter
+branch (OPEN 3), which remains the sustain deficit's only fix.
 
 ---
 
@@ -1054,9 +1061,13 @@ attention-only q/k/v/o, 160 LoRA layers, scaling 1.0). Corpus
 
 **No text was generated this session.** Every number is a forward pass over text
 already on disk. Budget: **0/6 generations, 0/2 training runs**, ~72 GPU-minutes
-(4310s). Raw output `/workspace/anaphora_hazard.json` (sha256 `fe02d9c6…`, 7481
-boundaries); run log copied to `docs/logs/anaphora_hazard_run.log`. This entry
-was written off-pod from those two files.
+(4310s). Raw output preserved in-repo at `eval/anaphora_hazard.json` (sha256
+`fe02d9c6…`, 7481 boundaries, byte-identical to the pod's
+`/workspace/anaphora_hazard.json`); run log at `logs/anaphora_hazard_run.log`.
+This entry was written off-pod from those two files, in parallel with a second
+session's analysis of the same JSON (`a825aed`, INVESTIGATION.md on
+`claude/short-output-investigation-iose1e`). The two analyses agree on every
+number; this entry folds both readings into one verdict.
 
 This is the seventh run's next-step #2, the measurement it said "would name the
 intervention": teacher-force the corpus and read the *anaphora* hazard rather
@@ -1205,14 +1216,22 @@ The measurement lands on the second branch's **mechanism** and rejects its
    model-agnostic capture. Once rungs exist in the prefix, base's hazard equals
    the adapter's (F3), and the seventh run already showed neither model can
    stop from inside it.
-3. But "the fix is generation-side" does not follow, because the sampler is not
-   what differs between base (0/4 ladders when sampling) and the adapter (7/10).
-   What differs is **the text each model writes before the first rung**. That
-   seeding region is the one thing this instrument cannot see: corpus text is
-   not it (that is the register the adapter fails to hold), and the adapter's
-   own recorded text is already laddering by the time boundaries accumulate —
-   the 30-boundary pre-loop cell is contaminated, and it is the single cell
-   where ELEV flips positive (+0.64, n=30), noted here and not leaned on.
+3. The remaining question is the **seeding**: the sampler is not what differs
+   between base (0/4 ladders when sampling) and the adapter (7/10) — the text
+   each model writes before the first rung is. The strongest evidence in this
+   dataset about that region is the pre-loop cell, and the parallel analysis
+   (`a825aed`) is right that it is the birthplace of every loop and comes out
+   the adapter's way in a diff-in-diff: at boundaries on the adapter's own text
+   before loop entry, the repeat option sits **0.78 nats below the true
+   continuation for the adapter vs 5.69 for base** (~1/2–1/3 vs ~1/300 relative
+   odds, ELEV +0.64 — the only positive cell in 7,481 boundaries). Two caveats
+   keep this suggestive rather than established: it is n=30, and those prefixes
+   are already laddering (the fourth run measured ~24% anaphora in the novel
+   prefixes of these very texts), so the cell cannot distinguish "the adapter's
+   own clean prose attracts repeats" from "already-laddering prose attracts
+   repeats". Also, the ~1/3 figure is odds against the single most likely
+   continuation, not a repeat probability — the median hazard in that cell is
+   ~2e-4. The uncontaminated version of this measurement is free (next step 1).
 
 ### Verdict
 
@@ -1228,35 +1247,55 @@ entirely **upstream of the first rung**, in the off-corpus register it drifts
 into when asked to sustain a chapter it never learned (sixth run) and in the
 opening-concentration F2 measures.
 
-Consequence for interventions, stated plainly: "retrain to remove the repeat
-pressure" targets something this run shows is not there. A generation-side
-guard (blocking sentence-opening repeats at sampling time) is now known to be a
-symptom clamp — it would prevent capture, but the sixth run says there is
-nothing underneath to sustain a chapter with, so the expected outcome is
-exit-A-like short stops, not chapters. The causal chain — can't sustain the
-chapter register → drifts toward brief-register openings → concentrated
-openings collide → model-agnostic capture → two exits — now has exactly one
-unmeasured link, the seeding, and it is free to measure.
+Consequence for interventions — the reconciled position of both analyses:
+
+- **"Retrain to remove the repeat pressure" is off the table.** Both write-ups
+  agree: this run shows there is no repeat pressure in the weights to remove.
+- **A repetition guard at sampling time (`no_repeat_ngram_size≈6` or a DRY
+  sampler) is a justified test, and the sampling question the standing task
+  closed is formally reopenable on this measurement** — that is `a825aed`'s
+  reading, adopted here. But it is loop mitigation, not the fix, and the
+  shared prediction goes on record now: it converts exit-B cap-loops into
+  exit-A-like clean stops at ~250–450 words, because sustainment is untouched.
+  One mechanical caveat this entry adds: an n-gram guard blocks the *verbatim*
+  cycle, but the ladder itself is fuzzy repetition ("He was afraid of the
+  dark. He was afraid of himself.") where only the opening tokens repeat — a
+  small n also forbids legitimate prose (the corpus has natural runs up to 3,
+  plus dialogue tags), a large n may pass the ladder. So guarded output must
+  be scored on anaphora with the fifth run's instrument, not just on length
+  and EOS.
+- **What a guard does NOT do: create 1400-word chapters.** Loops → sampler
+  guard; length → training (OPEN 3). The two problems are now formally
+  divorced, and the causal chain — can't sustain the chapter register → drifts
+  toward brief-register openings → concentrated openings collide →
+  model-agnostic capture → two exits — has exactly one unmeasured link left,
+  the seeding, and it is free to measure before any budget is spent.
 
 ### Next step
 
-1. **Close the seeding link, free and static, before any sign-off is asked
-   for.** Teacher-force base's four recorded chapter generations (652–819 w,
-   0.0% anaphora, on disk since the fourth run) through both models with this
-   same instrument. Base's text is the clean off-corpus control this run
-   lacked: long, chapter-shaped, ladder-free, and memorized by nobody. If the
-   adapter's hazard on *that* text is elevated in the tail — not the floor —
-   the seeding is in the weights conditioned on off-corpus register, and the
-   chain above closes; if it is floor-only there too, the seed is in the
-   register drift itself and OPEN 3 gains its sharpest argument yet.
-2. **OPEN 3 (branch rebalancing) unchanged** and still the leading
-   training-side candidate; this run neither strengthens nor weakens its case —
-   the sustain deficit, not repeat pressure, remains the thing a retrain has to
+1. **Close the seeding link, free and static, first.** Teacher-force base's
+   four recorded chapter generations (652–819 w, 0.0% anaphora, on disk since
+   the fourth run) through both models with this same instrument. Base's text
+   is the uncontaminated version of the pre-loop cell: long, chapter-shaped,
+   ladder-free, and memorized by nobody. If the adapter's hazard on *that*
+   text is elevated in the tail — not the floor — `a825aed`'s whirlpool
+   reading is confirmed on clean text and the chain above closes; if it is
+   floor-only there too, the seed is in the register drift itself and OPEN 3
+   gains its sharpest argument yet. Either way the result sharpens the
+   prediction for step 2 at zero cost.
+2. **The guard run — ten chapter-prompt samples with `no_repeat_ngram_size≈6`
+   or DRY, same seeds, cap 2560 — is the agreed next spend.** It needs
+   sign-off (it reopens the sampling question, which both analyses now agree
+   this measurement justifies). Score it on length, EOS, register, *and*
+   anaphora (fifth run's instrument), with the prediction on record: short,
+   clean, right-register pieces at ~250–450 words. That output is the honest
+   baseline for the only remaining decision — whether ~300-word scenes are
+   enough for the engine to build chapters from, or whether OPEN 3 pays for
+   one more training run to buy length.
+3. **OPEN 3 (branch rebalancing) unchanged** and still the only path to
+   1400-word chapters; this run neither strengthens nor weakens its case — the
+   sustain deficit, not repeat pressure, remains the thing a retrain has to
    buy.
-3. **The sampling-guard question stays parked** pending 1. If it is ever run,
-   it costs generations and needs sign-off, and it should be scored with the
-   sixth run's expectation on record: short clean stops are the predicted
-   outcome, not recovered chapters.
 4. **Unchanged and still open:** the `> ` markdown contamination (107/564 brief
    targets, 500 occurrences) — corpus edit, needs sign-off. OPEN 4 (chapter
    re-slice) held. OPEN 10 (pin `padding_free`) applies to whatever is trained
