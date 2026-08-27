@@ -1029,3 +1029,89 @@ packing all cleared in the fifth run).
    targets, 500 occurrences) — corpus edit, needs sign-off. OPEN 4 (chapter
    re-slice) held. OPEN 10 (pin `padding_free`) applies to whatever is trained next.
 root@82746977abdd:/#
+
+---
+
+# Ninth run — base-control cross-measurement
+
+**Verdict: the eighth run's pre-loop finding is retracted. So is the
+contamination counter-reading. Both fail for the same reason.**
+
+Run on a 4090; numerics identical to the L4 arms (same weights, same bf16).
+Data: `docs/anaphora_basectl.json`.
+
+## Falsifiers
+
+| check | value | pass |
+|---|---|---|
+| base arm vs adapter-disabled | 0.000e+00 | yes |
+| adapter arm live | 14.25 max logit delta | yes |
+| route noise, median abs | 0.0158 nats | yes — effect is 1–3 nats |
+
+## What was measured
+
+Base's four recorded chapter generations (`gen_base_control.json`), teacher-forced
+through the adapter with the same instrument. These are the right control: long,
+chapter-shaped, produced by neither model under test in a way that could have
+memorised them, and — verified in `basectl_loop` — completely clean:
+
+```
+bc1  788 words  finish EOS  repeat_span 0  loop_entry None
+bc2  819 words  finish EOS  repeat_span 0  loop_entry None
+bc3  713 words  finish EOS  repeat_span 0  loop_entry None
+bc4  652 words  finish EOS  repeat_span 0  loop_entry None
+```
+
+## Result
+
+**ELEV is positive on clean base chapter text: median +0.937 across 94
+boundaries, 56.4% of them positive.**
+
+Per text: bc1 +0.299, bc2 −1.602, bc3 +3.527, bc4 +2.925.
+
+That is the same sign and the same order of magnitude as the pre-loop cell —
+the single positive cell out of 7,481 boundaries that the eighth run built the
+whirlpool story on. It appears here on four texts that never ladder and
+terminate cleanly.
+
+So positive ELEV is what this instrument reads on off-manifold chapter-length
+text in general. It does not mark a pre-loop boundary. Neither ELEV's sign nor
+repeat hazard distinguishes a pre-loop boundary from healthy prose.
+
+**Both prior readings are falsified, not one.** The whirlpool story does not
+hold. The contamination explanation — that the pre-loop prefixes were already
+laddering and that is what produced the signal — does not hold either, because
+the effect is present on prefixes that demonstrably are not laddering.
+
+## Absolute hazards close it harder
+
+```
+adapter P(ana1)   1.5e-07 … 3.0e-06
+base    P(ana1)   7.6e-13 … 4.9e-12
+```
+
+Five orders of magnitude apart in relative terms, and five orders of magnitude
+below anything that affects sampling. There is no generatively meaningful
+elevation in either direction.
+
+## Consequences
+
+1. **This line of measurement is closed.** Three runs went into the anaphora
+   instrument. It has said what it can. No further anaphora-hazard runs.
+2. **A sampler guard can still be argued**, but only on cheap-intervention
+   grounds — loops occurred in 5 of 10 chapter samples. If run, it must be
+   scored on **loop incidence and register**, not on ELEV or the pre-loop cell.
+3. **Loops and length stay divorced.** Unchanged by this run.
+
+## New observation, unrelated to the anaphora question
+
+The four base controls are 652–819 words and every one finishes by EOS. The
+adapter produces 100–450.
+
+The fine-tune did not fail to reach chapter length. It **cut** the length of a
+base model that was already writing 700-word chapters and ending them properly.
+
+That reframes OPEN 3. The question is not "teach the model to write long" but
+"stop the adapter shortening output by two-thirds" — and LoRA scale is already
+known to be dose-dependent here from the third run. Worth testing scale before
+paying for a corpus rebuild and a training run.
