@@ -2,7 +2,16 @@
 
 Lab notebook from seven headless Claude Code sessions on the RunPod pod,
 running against `AUTONOMOUS_TASK.md` under `--max-turns 100`. Copied here from
-`/workspace/driftenginelite/Drift-engine/EXPERIMENT_LOG.md`.
+`/workspace/driftenginelite/Drift-engine/EXPERIMENT_LOG.md`. The eighth entry
+was analyzed off-pod from the uploaded `anaphora_hazard.json` (preserved at
+`eval/anaphora_hazard.json`) and its run log (`logs/anaphora_hazard_run.log`);
+the ninth ran on a 4090 with its data at `docs/anaphora_basectl.json` and a
+verification note appended off-pod.
+Two sessions analyzed that JSON in parallel — this entry, and the
+ANAPHORA-HAZARD VERDICT section that commit `a825aed` added to INVESTIGATION.md
+on `claude/short-output-investigation-iose1e`. They agree on every measured
+number; where their verdict sentences differed, the entry below is the
+reconciled verdict and supersedes both.
 
 **Snapshot caveat.** This copy was taken before commit `6781c1b` ("Fix a
 boundary rule that made the anaphora instrument blind to the ladder"). The
@@ -11,8 +20,10 @@ required both boundary and candidate to be the space-prefixed token form and so
 silently dropped every paragraph-initial sentence — 22.7% of the chapter corpus,
 and 194 of 197 sentences in `gen10`, the single clearest specimen of the
 phenomenon. The EOS-hazard results are unaffected. Re-run pending.
+*(The eighth entry below ran on the post-fix instrument: chapter-arm drop rate
+0.1%, and `gen10` contributes 40/40 boundaries.)*
 
-**Headline findings across the seven runs:**
+**Headline findings across the nine runs:**
 
 1. EOS is not the defect. The adapter *installed* a stop decision the base model
    lacks — terminal P(EOS) on brief targets 0.481 vs base 0.000 — and on chapter
@@ -26,9 +37,26 @@ phenomenon. The EOS-hazard results are unaffected. Re-run pending.
    one degeneration with two exits. Exit A gives a correct EOS on genuinely
    finished but degenerate text; exit B gives an EOS-suppressing attractor.
 
+4. The ladder pressure is not in the weights in any generative sense. On corpus
+   chapter text the adapter's repeat hazard is up 8x only at the floor (6e-7 →
+   6e-6) with the tail at parity (~0.02 expected rungs per chapter under both
+   models), and the elevation is not repeat-specific — control openings are
+   boosted more (ELEV −0.64). On the adapter's own laddered text, base is
+   equally trapped (mean hazard 0.26 vs 0.25). The ladder is a model-agnostic
+   capture; the adapter's contribution is upstream of the first rung. The
+   ninth run closes the instrument from the other side: on clean off-manifold
+   chapter text (base's own generations) the adapter's repeat hazard is also
+   nil (median 5.4e-7, max 1.3e-3), so there is no weight-borne seed an
+   exact-repeat probe can find, and the eighth run's pre-loop cell is retracted
+   as evidence — its elevation came from prefixes that were already laddering.
+
 Consequence: "make the model emit EOS at the end of a long response" is the
 wrong target. Fixing EOS would only convert exit-B loops into exit-A stops at
-~300 words.
+~300 words. And "retrain to remove the repeat pressure" is equally wrong — the
+eighth run shows there is no repeat pressure to remove. Loops and length are
+formally divorced: loops → a sampling-time repetition guard (to be validated,
+predicted outcome ~250–450-word clean stops); length → training on the chapter
+branch (OPEN 3), which remains the sustain deficit's only fix.
 
 ---
 
@@ -1028,11 +1056,264 @@ packing all cleared in the fifth run).
 4. **Unchanged and still open:** the `> ` markdown contamination (107/564 brief
    targets, 500 occurrences) — corpus edit, needs sign-off. OPEN 4 (chapter
    re-slice) held. OPEN 10 (pin `padding_free`) applies to whatever is trained next.
-root@82746977abdd:/#
 
 ---
 
-# Ninth run — base-control cross-measurement
+## 2026-08-27 (eighth run) — the anaphora hazard. The repeat pressure is not in the weights in any generative sense; the ladder is a model-agnostic capture that the adapter only has to seed
+
+Adapter under test: `/workspace/drift_sft_out_v6/adapter` (variant F, r=alpha=16,
+attention-only q/k/v/o, 160 LoRA layers, scaling 1.0). Corpus
+`/workspace/final_training_corpus_v2_1_latest.json`, generations
+`/workspace/gen_v6_cap2560.json`, system sha256 `ed40b81d…`.
+
+**No text was generated this session.** Every number is a forward pass over text
+already on disk. Budget: **0/6 generations, 0/2 training runs**, ~72 GPU-minutes
+(4310s). Raw output preserved in-repo at `eval/anaphora_hazard.json` (sha256
+`fe02d9c6…`, 7481 boundaries, byte-identical to the pod's
+`/workspace/anaphora_hazard.json`); run log at `logs/anaphora_hazard_run.log`.
+This entry was written off-pod from those two files, in parallel with a second
+session's analysis of the same JSON (`a825aed`, INVESTIGATION.md on
+`claude/short-output-investigation-iose1e`). The two analyses agree on every
+number; this entry folds both readings into one verdict.
+
+This is the seventh run's next-step #2, the measurement it said "would name the
+intervention": teacher-force the corpus and read the *anaphora* hazard rather
+than the EOS hazard — at each sentence boundary, P(the model would begin the
+same sentence-opening n-gram it just used), base vs adapter.
+
+### Step 1 — termination in the training data
+
+Unchanged, still closed, sixth session running. Nothing below touches it.
+
+### What was measured
+
+At each of up to 40 sentence boundaries per entry of teacher-forced text, the
+joint log-probability of a K=6-token candidate continuation spliced in place of
+the true one:
+
+- **ANA1** — the opening 6 tokens of the sentence that just ended. `exp(ana1)`
+  is the per-boundary anaphora hazard: the probability that the model, handed
+  this exact prefix, would start the next sentence by repeating the opening it
+  just used.
+- **CTRL** — the opening of a sentence from the same entry ≥8 sentences away
+  (`ctrl_min_sent_dist=8`). The pool contains both token forms — space-prefixed
+  400 / paragraph-initial 147 — i.e. the post-`6781c1b` boundary rule; the bug
+  that blinded the pre-fix instrument is confirmed gone (chapter arm dropped 13
+  of 13,538 sentences = 0.1% vs 22.7% pre-fix; `gen10`, which pre-fix lost
+  194/197 sentences, now contributes 40/40 boundaries).
+- **ELEV** — `(ana1 − ctrl)_adapter − (ana1 − ctrl)_base`, the difference-in-
+  differences: the adapter's *repeat-specific* preference net of how much each
+  model likes an in-register sentence opening generally.
+
+Three arms: `chapter@chapter` (138 entries, 5288 boundaries), `brief@brief`
+(493 of 564 usable, 1855), `selftext` — the ten recorded chapter generations
+from the fourth run (338; loop-entry points reproduce the recorded repeat spans
+1177/930/1075/1181/1131 exactly).
+
+Four falsifiers, all passed before measurement: scale-0 vs `disable_adapter()`
+bit-identical (0.000e+00); scale-1 vs scale-0 live (max 14.375); the chapter
+prefix token-identical to every recorded arm (54 tokens); and the spliced route
+vs the plain teacher-forced route agreeing to zero-mean bf16 reduction noise,
+worst median|Δ| 0.0375 nats on a 6-token joint — common-mode in ELEV, since both
+ANA1 and CTRL use the spliced route in both models.
+
+### F1 — on corpus chapter text the floor is up ~8x; the tail, which is where ladders start, is at parity
+
+```
+chapter@chapter                  adapter      base
+median hazard / boundary         6.1e-06      6.1e-07    (Δ +2.08 nats, higher in 138/138 entries, p=6e-42)
+mean hazard / boundary           4.8e-04      6.0e-04
+P(hazard > 1e-2)                 1.1%         1.2%
+max hazard                       0.115        0.304
+expected rungs / 40 boundaries   0.019        0.024
+per-entry mean ratio             median 1.25x, adapter higher in 87/138, p=0.003
+```
+
+The pre-registered word "elevated" splits in two, and the split is the finding.
+At the **median** boundary the adapter's repeat hazard is 8x base's, in every
+single entry — the pressure is detectably in the weights. But 8x of 6e-7 is
+6e-6, and generation does not sample medians: a ladder needs a rung actually
+drawn, which happens in the **tail**, and the tail is at parity — mean hazard
+slightly *below* base, identical mass above 1e-2, base holding the maximum.
+Expected sentence-opening repeats per chapter: ~0.02 under both models. Handed
+corpus chapter text, the adapter would ladder essentially never, and so would
+base.
+
+### F2 — and the floor elevation is not anaphora-specific
+
+Raw boost vs base, median nats, alongside the same-entry control opening:
+
+```
+arm              ana1     ctrl     ELEV (dd)   entries ELEV<0
+chapter@chapter  +2.08    +2.83    -0.641      113/138   p=1.5e-14
+brief@brief      +6.30    +9.52    -2.842      400/493   p=2e-46
+selftext         +4.50    +5.50    -1.759      —
+```
+
+Whatever opening you splice in, the adapter boosts it — and it boosts a
+*different* same-entry opening by more than it boosts the repeat. Net of that,
+the adapter's repeat-vs-control odds are about **half** of base's (e^-0.64) on
+chapter text. The obvious deflator — same-entry controls are memorized training
+text — cannot explain the sign: ELEV is negative on `selftext` too, where
+nothing is memorized. What the adapter installs is mass concentration onto
+in-register sentence openings *as a class*, not a repeat operator.
+
+### F3 — on the adapter's own generations, base is exactly as trapped
+
+```
+selftext (338 boundaries)        adapter      base
+mean hazard / boundary           0.246        0.260
+P(hazard > 0.1)                  28.1%        28.7%
+P(hazard > 1e-2)                 34.3%        32.5%
+```
+
+Per generation, mean hazard per boundary:
+
+```
+gen  finish  words   adapter    base       P>0.1 (a / b)
+1    EOS      374    1.8e-01    2.6e-01    40.0% / 36.7%
+2    CAP     2354    7.8e-01    8.0e-01    82.5% / 82.5%
+3    CAP     1861    3.5e-05    1.9e-07     0.0% /  0.0%
+4    EOS      405    2.8e-02    5.4e-02    10.3% / 15.4%
+5    EOS      200    4.4e-03    1.5e-03     0.0% /  0.0%
+6    CAP     2151    2.4e-05    3.1e-07     0.0% /  0.0%
+7    CAP     2362    9.3e-01    9.3e-01    92.5% / 95.0%
+8    EOS      263    2.4e-03    1.8e-03     0.0% /  0.0%
+9    EOS      252    2.1e-03    7.8e-05     0.0% /  0.0%
+10   CAP     2263    2.1e-01    2.2e-01    22.5% / 22.5%
+```
+
+The same floor-vs-tail structure as F1, now on the adapter's own text. Wherever
+the hazard is generatively large — the sentence-opening ladders and loops of
+gens 1, 2, 4, 7, 10 — **base teacher-forced on the same text matches the
+adapter almost exactly**, to the percentage point at the deep loops (gen2 0.78
+vs 0.80, gen7 0.93 vs 0.93, saturating at ≈1.0 under both). Where the adapter
+is 10–100x above base (gens 3, 6, 9), the absolute level is 1e-5 to 1e-3 —
+floor again, generatively irrelevant; gens 3 and 6 loop on a period that is not
+a sentence-opening repeat, which is why this instrument reads them low. And the
+laddered text is if anything *more* predictable to base than to its author:
+median 6-token true-continuation logprob −0.04 (base) vs −0.20 (adapter).
+
+Conditioned on text that already ladders, any model of this class is captured —
+this is induction copying, not adapter weights. It is the same result as the
+seventh run's base-also-trapped hazard decay, now measured on the anaphora side.
+
+### F4 — position
+
+The raw adapter-vs-base gap is largest in the first 100 words (+3.35 nats,
+decaying to +1.9 by mid-chapter) while absolute hazard stays flat at ~e^-12;
+ELEV runs −0.91 → −0.28 across the chapter. The short-form pull is strongest
+where the brief branch's opening moves are most applicable — still floor-level
+everywhere.
+
+### The pre-registered branch, resolved — mechanism to one side, policy to the other
+
+The seventh run posed a binary: elevated on corpus text → the pressure is in
+the weights, fix training-side; not elevated → "the ladder is purely a
+self-conditioning runaway, and the fix is generation-side after all."
+
+The measurement lands on the second branch's **mechanism** and rejects its
+**policy inference**:
+
+1. *Repeat-specific pressure visible on corpus text* — **falsified**. The only
+   elevation is an 8x floor shift at absolute levels five orders of magnitude
+   below generative relevance (F1), and it is subsumed by a larger, non-specific
+   concentration onto in-register openings (F2, ELEV negative in 113/138).
+2. *Self-conditioning runaway* — **confirmed and sharpened**: the runaway is
+   model-agnostic capture. Once rungs exist in the prefix, base's hazard equals
+   the adapter's (F3), and the seventh run already showed neither model can
+   stop from inside it.
+3. The remaining question is the **seeding**: the sampler is not what differs
+   between base (0/4 ladders when sampling) and the adapter (7/10) — the text
+   each model writes before the first rung is. The strongest evidence in this
+   dataset about that region is the pre-loop cell, and the parallel analysis
+   (`a825aed`) is right that it is the birthplace of every loop and comes out
+   the adapter's way in a diff-in-diff: at boundaries on the adapter's own text
+   before loop entry, the repeat option sits **0.78 nats below the true
+   continuation for the adapter vs 5.69 for base** (~1/2–1/3 vs ~1/300 relative
+   odds, ELEV +0.64 — the only positive cell in 7,481 boundaries). Two caveats
+   keep this suggestive rather than established: it is n=30, and those prefixes
+   are already laddering (the fourth run measured ~24% anaphora in the novel
+   prefixes of these very texts), so the cell cannot distinguish "the adapter's
+   own clean prose attracts repeats" from "already-laddering prose attracts
+   repeats". Also, the ~1/3 figure is odds against the single most likely
+   continuation, not a repeat probability — the median hazard in that cell is
+   ~2e-4. The uncontaminated version of this measurement is free (next step 1).
+
+### Verdict
+
+**ESTABLISHED.** No intervention was made, so no CLEAN / IMPROVED / WORSE.
+
+Three statements now on deterministic footing: the adapter carries no
+generatively meaningful anaphora pressure on corpus chapter text — floor up 8x,
+tail at parity, ~0.02 expected rungs per chapter under both models; the ladder,
+once entered, is a model-agnostic attractor — base matches the adapter's hazard
+on the adapter's own laddered text to the percentage point; and therefore the
+adapter's distinctive contribution to the 7/10-vs-0/4 sampling gap lives
+entirely **upstream of the first rung**, in the off-corpus register it drifts
+into when asked to sustain a chapter it never learned (sixth run) and in the
+opening-concentration F2 measures.
+
+Consequence for interventions — the reconciled position of both analyses:
+
+- **"Retrain to remove the repeat pressure" is off the table.** Both write-ups
+  agree: this run shows there is no repeat pressure in the weights to remove.
+- **A repetition guard at sampling time (`no_repeat_ngram_size≈6` or a DRY
+  sampler) is a justified test, and the sampling question the standing task
+  closed is formally reopenable on this measurement** — that is `a825aed`'s
+  reading, adopted here. But it is loop mitigation, not the fix, and the
+  shared prediction goes on record now: it converts exit-B cap-loops into
+  exit-A-like clean stops at ~250–450 words, because sustainment is untouched.
+  One mechanical caveat this entry adds: an n-gram guard blocks the *verbatim*
+  cycle, but the ladder itself is fuzzy repetition ("He was afraid of the
+  dark. He was afraid of himself.") where only the opening tokens repeat — a
+  small n also forbids legitimate prose (the corpus has natural runs up to 3,
+  plus dialogue tags), a large n may pass the ladder. So guarded output must
+  be scored on anaphora with the fifth run's instrument, not just on length
+  and EOS.
+- **What a guard does NOT do: create 1400-word chapters.** Loops → sampler
+  guard; length → training (OPEN 3). The two problems are now formally
+  divorced, and the causal chain — can't sustain the chapter register → drifts
+  toward brief-register openings → concentrated openings collide →
+  model-agnostic capture → two exits — has exactly one unmeasured link left,
+  the seeding, and it is free to measure before any budget is spent.
+
+### Next step
+
+1. **Close the seeding link, free and static, first.** Teacher-force base's
+   four recorded chapter generations (652–819 w, 0.0% anaphora, on disk since
+   the fourth run) through both models with this same instrument. Base's text
+   is the uncontaminated version of the pre-loop cell: long, chapter-shaped,
+   ladder-free, and memorized by nobody. If the adapter's hazard on *that*
+   text is elevated in the tail — not the floor — `a825aed`'s whirlpool
+   reading is confirmed on clean text and the chain above closes; if it is
+   floor-only there too, the seed is in the register drift itself and OPEN 3
+   gains its sharpest argument yet. Either way the result sharpens the
+   prediction for step 2 at zero cost.
+2. **The guard run — ten chapter-prompt samples with `no_repeat_ngram_size≈6`
+   or DRY, same seeds, cap 2560 — is the agreed next spend.** It needs
+   sign-off (it reopens the sampling question, which both analyses now agree
+   this measurement justifies). Score it on length, EOS, register, *and*
+   anaphora (fifth run's instrument), with the prediction on record: short,
+   clean, right-register pieces at ~250–450 words. That output is the honest
+   baseline for the only remaining decision — whether ~300-word scenes are
+   enough for the engine to build chapters from, or whether OPEN 3 pays for
+   one more training run to buy length.
+3. **OPEN 3 (branch rebalancing) unchanged** and still the only path to
+   1400-word chapters; this run neither strengthens nor weakens its case — the
+   sustain deficit, not repeat pressure, remains the thing a retrain has to
+   buy.
+4. **Unchanged and still open:** the `> ` markdown contamination (107/564 brief
+   targets, 500 occurrences) — corpus edit, needs sign-off. OPEN 4 (chapter
+   re-slice) held. OPEN 10 (pin `padding_free`) applies to whatever is trained
+   next.
+
+Budget this session: 0/2 training runs, 0/6 generations, ~72 GPU-minutes.
+
+---
+
+## 2026-08-27 (ninth run) — base-control cross-measurement
+
 
 **Verdict: the eighth run's pre-loop finding is retracted. So is the
 contamination counter-reading. Both fail for the same reason.**
@@ -1040,7 +1321,7 @@ contamination counter-reading. Both fail for the same reason.**
 Run on a 4090; numerics identical to the L4 arms (same weights, same bf16).
 Data: `docs/anaphora_basectl.json`.
 
-## Falsifiers
+### Falsifiers
 
 | check | value | pass |
 |---|---|---|
@@ -1048,7 +1329,7 @@ Data: `docs/anaphora_basectl.json`.
 | adapter arm live | 14.25 max logit delta | yes |
 | route noise, median abs | 0.0158 nats | yes — effect is 1–3 nats |
 
-## What was measured
+### What was measured
 
 Base's four recorded chapter generations (`gen_base_control.json`), teacher-forced
 through the adapter with the same instrument. These are the right control: long,
@@ -1062,7 +1343,7 @@ bc3  713 words  finish EOS  repeat_span 0  loop_entry None
 bc4  652 words  finish EOS  repeat_span 0  loop_entry None
 ```
 
-## Result
+### Result
 
 **ELEV is positive on clean base chapter text: median +0.937 across 94
 boundaries, 56.4% of them positive.**
@@ -1083,7 +1364,7 @@ hold. The contamination explanation — that the pre-loop prefixes were already
 laddering and that is what produced the signal — does not hold either, because
 the effect is present on prefixes that demonstrably are not laddering.
 
-## Absolute hazards close it harder
+### Absolute hazards close it harder
 
 ```
 adapter P(ana1)   1.5e-07 … 3.0e-06
@@ -1094,7 +1375,7 @@ Five orders of magnitude apart in relative terms, and five orders of magnitude
 below anything that affects sampling. There is no generatively meaningful
 elevation in either direction.
 
-## Consequences
+### Consequences
 
 1. **This line of measurement is closed.** Three runs went into the anaphora
    instrument. It has said what it can. No further anaphora-hazard runs.
@@ -1103,7 +1384,7 @@ elevation in either direction.
    scored on **loop incidence and register**, not on ELEV or the pre-loop cell.
 3. **Loops and length stay divorced.** Unchanged by this run.
 
-## New observation, unrelated to the anaphora question
+### New observation, unrelated to the anaphora question
 
 The four base controls are 652–819 words and every one finishes by EOS. The
 adapter produces 100–450.
@@ -1115,3 +1396,62 @@ That reframes OPEN 3. The question is not "teach the model to write long" but
 "stop the adapter shortening output by two-thirds" — and LoRA scale is already
 known to be dose-dependent here from the third run. Worth testing scale before
 paying for a corpus rebuild and a training run.
+
+### Off-pod verification note (appended on merge, same JSON)
+
+Every number the entry reports reproduces from `docs/anaphora_basectl.json`:
+ELEV median +0.937, 53/94 boundaries positive, per-text medians
++0.299 / −1.602 / +3.527 / +2.925, per-text median hazards adapter
+1.5e-7 – 3.0e-6 vs base 7.6e-13 – 4.4e-12, all three falsifiers as stated.
+Three qualifications go on record with it, none of which reopens the
+instrument:
+
+1. **"ELEV is positive on clean base text" is not statistically established —
+   and the retraction is stronger without it.** 53/94 is a boundary-level sign
+   test of p=0.26, and the boundaries cluster in four texts (3 of 4 positive,
+   p=0.625), whose medians swing from −1.6 to +3.5. The defensible statement
+   is that ELEV on off-manifold text is **indistinguishable from zero with
+   ±3-nat per-text swings** — which kills the pre-loop cell's +0.64 (n=30, one
+   cell of 7,481) as evidence just as surely, and without resting on a sign
+   that four texts cannot pin down. The root cause is now measurable: the
+   base-side term of every relative metric is unstable across text types
+   (median `b_ana1`: −14.3 on corpus text, −13.1 on the adapter's generations,
+   **−27.4 here** — base essentially never re-uses an opening in its own
+   prose). ELEV and the ana−true diff-in-diffs inherit that 13-nat swing, so
+   no base-relative quantity from this instrument is comparable across arms.
+   Only the adapter's absolute hazard is.
+
+2. **"Neither ELEV's sign nor repeat hazard distinguishes a pre-loop boundary"
+   overstates by half, and the half matters.** True for ELEV. Not true for
+   hazard: on these clean texts the adapter's median repeat hazard is 5.4e-7
+   and the repeat sits 8.4 nats below the true continuation; at the pre-loop
+   boundaries it was 2.1e-4 — **~400x higher** — and 0.78 nats below true. So
+   the contamination reading is not dead alongside the whirlpool reading; it
+   is what this run's own numbers leave standing: clean prefixes (anyone's)
+   read nil, and the pre-loop cell read high **because its prefixes were
+   already laddering** — self-conditioning, the eighth run's F3, now bracketed
+   from both sides. What died in both readings is any *weight-borne seed
+   measurable by an exact-repeat probe*: adapter hazard on clean off-manifold
+   text (mean 4.2e-5, max 1.3e-3) is below sampling relevance, exactly as the
+   entry concludes.
+
+3. **The closing observation is the sixth run's, and the scale suggestion has
+   a prior curve against it.** Base at 0.53x of chapter target vs adapter at
+   0.18x — "further from it than the model it started from" — is on record in
+   the sixth run's table. The third and fifth runs already walked the scale
+   axis at the chapter prompt: 0.25 restores termination but is register-null
+   (indistinguishable from base on every scored metric), 0.5 is already
+   laddering (mean anaphora 30.8, max run 14). The only untested window is
+   (0.25, 0.5), and both measured endpoints argue it is empty. A scale sweep
+   is cheap and legal to run, but it re-spends generations where the recorded
+   dose-response already gave the answer twice; if it runs anyway, score it
+   with the fifth run's instruments and say what (0.25, 0.5) point it tests.
+
+Consequences 1–3 above stand as written: instrument closed, guard argued only
+on loop-incidence grounds, loops and length divorced. One boundary on the
+closure for the record: this instrument probed the *exact previous opening*
+(K=6). The first-rung question it cannot see — whether the adapter
+concentrates sentence-opening mass enough to make *any* same-opening collision
+likely (the eighth run's F2 boost, +2.8 to +9.5 nats on control openings) — is
+a different, also-free probe (opening-distribution entropy at boundaries).
+Noted as optional; nothing above depends on it.
