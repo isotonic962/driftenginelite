@@ -1,0 +1,118 @@
+# idea-mine configuration.
+# All paths are relative to the directory containing this file.
+
+paths:
+  data: data          # corpus (failures.jsonl, retro.jsonl)
+  runs: runs          # raw generations, one jsonl per day
+  scores: scores      # novelty/logprob scores, one jsonl per day
+  digests: digests    # markdown digests, one per day
+  cache: cache        # embedding cache
+  logs: logs
+
+data:
+  hupd:
+    repo: HUPD/hupd
+    years: [2004, 2018]                    # inclusive filing-year range to scan
+    negative_decision_patterns: [REJECT, ABANDON]   # case-insensitive substrings of the decision label
+    cpc_prefixes: [G05B, G05D, G01D]       # main CPC (falls back to main IPC) must start with one of these
+    widen_below: 1500                      # if fewer rows than this, widen to the prefixes below
+    widened_cpc_prefixes: [G05, G01]
+    max_rows: 20000                        # hard cap on failures kept (random subset, fixed seed)
+    background_max_chars: 4000
+    seed: 0
+
+  utzoo:
+    repo: HDTenEightyP/UTZOO
+    # newsgroup name regexes (case-insensitive). Pre-1987 Usenet used net.*, so both spellings are listed.
+    group_patterns:
+      - '^(net|sci)\.electronics'
+      - '^(net|comp)\.robotics'
+      - '^sci\.engr'
+      - '^comp\.realtime'
+      - '^(net|sci)\.physics'
+      - '^net\.micro'
+      - '^comp\.dsp'
+      - '^(net|sci)\.space'
+      - '^(net|rec)\.ham-radio'
+      - '^(net|sci)\.instrument'
+      - '^comp\.sys\.[a-z0-9-]+\.hardware'
+      - '^net\.hardware'
+      - '^comp\.arch\.embedded'
+    min_keyword_hits: 2                    # distinct keyword regexes that must match a post
+    min_words: 100
+    max_words: 600
+    target_snippets: 2000
+    min_snippets: 500
+    max_candidates: 8000                   # stop scanning once this many candidates are collected
+    inspect_rows: 20000                    # rows used for the schema/newsgroup inspection printout
+    seed: 0
+
+  echo88:
+    enabled: true                          # gated dataset: skipped silently if the HF token has no access
+    repo: guus4324343/Echo88-Pretrain-1.17B
+    max_rows_scanned: 200000
+    max_snippets: 500
+    min_keyword_hits: 3
+
+  # Shared keyword regexes (case-insensitive) used for retro-text filtering.
+  keywords:
+    - '\bcontrol(ler|lers|s)?\b'
+    - '\bservo(s|motor|mechanism)?\b'
+    - '\bsensors?\b'
+    - '\bfeedback\b'
+    - '\bmeasur(e|es|ed|ing|ement|ements)\b'
+    - '\binstrument(s|ation)?\b'
+    - '\bPID\b'
+    - '\bactuat(or|ors|ion)\b'
+    - '\btransducers?\b'
+    - '\bthermocouples?\b'
+    - '\bencoders?\b'
+    - '\bstepper\b'
+    - '\bop[- ]?amps?\b'
+    - '\boscilloscope\b'
+    - '\bcalibrat(e|ed|ion)\b'
+    - '\bclosed[- ]loop\b'
+    - '\b(A/D|ADC|D/A|DAC)\b'
+    - '\bsetpoint\b'
+    - '\bhysteresis\b'
+    - '\bpotentiometer\b'
+    - '\bstrain gauge\b'
+    - '\baccelerometer\b'
+    - '\bgyro(scope)?\b'
+    - '\bdata acquisition\b'
+    - '\btelemetry\b'
+    - '\bregulator\b'
+    - '\bdamping\b'
+    - '\bsampling rate\b'
+    - '\bloop gain\b'
+
+model:
+  name: Qwen/Qwen2.5-7B                    # BASE model. Never an Instruct/Chat variant.
+  path: null                               # explicit local model directory; overrides the search below
+  local_search_roots:                      # scanned for an existing Qwen base checkpoint before downloading
+    - ~/.cache/huggingface/hub
+    - ~/models
+    - /models
+    - /opt/models
+    - /data/models
+
+generation:
+  n_samples: 300
+  temperature: 1.2
+  min_p: 0.05
+  max_new_tokens: 300
+  max_prompt_tokens: 3200                  # retro snippet is trimmed if the prompt exceeds this
+  suffix: "\n\nProposed apparatus combining the above principles:\n"
+  backend: auto                            # auto | vllm | transformers
+  vllm_min_vram_gb: 20                     # auto picks vLLM (bf16) only above this much VRAM
+  vllm_gpu_memory_utilization: 0.90
+  transformers_bf16_min_vram_gb: 18        # below this, transformers loads the model in 4-bit (bitsandbytes)
+  batch_size: 8                            # transformers backend batch size
+  seed_salt: 0                             # change to get a different set of samples for the same date
+
+scoring:
+  embedding_model: BAAI/bge-small-en-v1.5
+  trim_fraction: 0.10                      # drop this fraction at each end of the mean-logprob ranking
+
+digest:
+  top_n: 30

@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+data/
+cache/
+logs/
+selftest_work/
+*.tmp
+*.tmp.npz
