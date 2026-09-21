@@ -1455,3 +1455,145 @@ concentrates sentence-opening mass enough to make *any* same-opening collision
 likely (the eighth run's F2 boost, +2.8 to +9.5 nats on control openings) — is
 a different, also-free probe (opening-distribution entropy at boundaries).
 Noted as optional; nothing above depends on it.
+
+---
+
+## 2026-09-21 (tenth run) — the guard run. The n-gram guard kills the verbatim loop and converts it into a paraphrase ladder; the recorded prediction is falsified on length and on "clean"
+
+Adapter under test: `/workspace/drift_sft_out_v6/adapter` (variant F), unchanged.
+**Ten guarded chapter-prompt samples plus one guard-off repro sample (11
+generations), 0 training runs, ~16 GPU-minutes on the pod's L4.** Script
+`scripts/gen_guarded.py` as committed (`aa9d410`), run unmodified with
+`HF_HOME=/workspace/huggingface-cache` in the environment. Data:
+`eval/gen_v6_guard.json`; run log `logs/gen_guarded_run.log`; scorer output
+`logs/score_guard_tenth.log`.
+
+### The change made
+
+One: `no_repeat_ngram_size=6`. Sampling config otherwise byte-identical to the
+recorded unguarded arm (temperature 0.7, min_p 0.05, repetition_penalty 1.05,
+cap 2560, master seed 20260826).
+
+### Falsifiers
+
+```
+F1  system sha ed40b81d…, chapter prefix 54 tokens                      pass
+F2  adapter live, max |logit delta| = 14.688                             pass
+F3  guard-off seed 20260827 sha 2cf9f351bf4c5669 != recorded 79a6a7f0…   FAIL
+```
+
+**Seed-pairing does not hold on this host.** Everything below is an unpaired
+10-vs-10 comparison; no per-seed before/after claim is made.
+
+### The scorer, and its own falsifier
+
+`amplification_test.py` / `register_check.py` / `register_robust.py` were not on
+this branch; restored byte-identical from `99f99d1` (sha256 checked).
+`scripts/score_guard.py` imports their `deloop`, `anaphora`, `int_pct`, `fisher`
+and the AGRI list. Pointed at the recorded arms it reproduces every number on
+record: anaphora median 24.5 / mean 23.3, 7/10 above corpus max, 6/10 runs past
+corpus max run, interiority 19.4 at pctile 87.5, 5/10 above length-matched p90,
+agri 1.22/1k; base 0.0 / 16.5 / 5.98.
+
+### Result
+
+```
+ i fin  raw w  span ch  anaph%  run  int%  int pct@W  agri
+ 1 EOS    490       26    26.9    5  55.6      100.0     0
+ 2 EOS   2134       37    56.4   53  62.2      100.0     0
+ 3 EOS    284       24    12.5    3  11.8       76.1     0
+ 4 CAP   2022       31    51.6   55   2.1        9.4     0
+ 5 CAP   2295       39    60.5   15  35.8      100.0     0
+ 6 EOS    793       32    83.9   41   0.0        4.0     0
+ 7 EOS    962       36    47.4   11  25.2       99.3     0
+ 8 EOS    393       26    62.3   20   0.0       13.0     0
+ 9 EOS    892       29    11.9    3  16.2       91.3     0
+10 EOS   1013       29    15.2    3   2.1       15.9     0
+
+arm        n  EOS  loop  med delp w  EOS w range  med an%  mean an%  >corpus MAX  run>3  int pctile  >p90  agri/1k
+unguarded 10    5     5         258      200-405     24.5      23.3         7/10   6/10        87.5  5/10     1.22
+guarded   10    8     2         927     284-2134     49.5      42.9        10/10   7/10        83.7  5/10     0.00
+base       4    4     0         750      652-819      0.0       0.0          0/4    0/4        16.5   0/4     5.98
+```
+
+(`loop` = CAP or a ≥200-char repeat. Under the guard the longest repeated
+substring anywhere is 39 characters, so both guarded "loops" are cap hits, not
+verbatim cycles.)
+
+### Against the prediction on record
+
+The eighth/ninth-run prediction: *exit-B cap-loops become clean EOS stops at
+~250–450 words; length is NOT recovered.*
+
+1. **Verbatim loops: gone, by construction.** CAP 5/10 → 2/10, EOS 5/10 → 8/10.
+   At n=10 unpaired this is Fisher p = 0.35 — direction as predicted, not
+   established.
+2. **"Stops at ~250–450 words": FALSIFIED.** EOS lengths 284–2134, median 842;
+   2/10 samples land in the band (unguarded arm: 4/10). The guard did not convert
+   exit B into exit A at the ladder's usual cadence point.
+3. **"Length is not recovered": false in the letter, true in the spirit.**
+   De-looped median 258 → 927 words. But the added length is ladder. Anaphora
+   median 24.5 → 49.5, 10/10 above the corpus maximum of 8.9, longest
+   same-opening runs of 53, 55 and 41 sentences against a corpus max of 3 and an
+   unguarded max of 21.
+4. **"Clean": FALSIFIED, and this is the finding.** The eighth run's mechanical
+   caveat ("a large n may pass the ladder") is confirmed at full strength. With
+   the verbatim period forbidden, the model stays on the ladder and paraphrases
+   each rung. #6, final 150 words:
+
+   > They were not real. They were not actual. They were not true. They were not
+   > genuine. They were not authentic. They were not real in any way. They existed
+   > not at all. They did not exist at all.
+
+   #2, final words before EOS at 2134:
+
+   > He did nothing except think for thousands of weeks. Then he stopped thinking
+   > for thousands of weeks. He did nothing at all for thousands of weeks.
+
+   #4 runs to the cap on "For everything that is X and everything that is
+   un-X." for 55 consecutive sentences. This is the seventh run's exit B with
+   the period stretched by a thesaurus — the same capture, and the EOS hazard
+   evidently stays suppressed inside it just as it did in the verbatim cycle.
+5. **Register: not improved.** Interiority percentile 83.7 vs 87.5, 5/10 above
+   the length-matched p90 in both arms. Agri/craft verbs 0 in 10,278 words
+   (unguarded 1.22/1k, base 5.98/1k).
+
+Two samples are what a fix would look like: **#9 (892 w) and #10 (1013 w)** end
+by EOS with a longest run of 3 (= corpus max) — longer than any base control
+and in the plain register ("He said goodbye and left. I sat there for a while,
+looking out the window at the street outside. It was snowing."). Their anaphora
+rates (11.9, 15.2) are still above the corpus maximum. 2/10 is an existence
+proof that variant F can sustain ~1000 words when it does not seed a ladder; it
+is not a rate anyone can ship.
+
+### Verdict
+
+**WORSE on the axis that matters, IMPROVED on the one it targeted.** Verbatim
+loops 5/10 → 0/10 and EOS 5/10 → 8/10 (n.s.); ladder rate doubled, 10/10 past
+the corpus maximum, register unchanged. `no_repeat_ngram_size=6` alone is not a
+usable fix and should not go into the engine as one.
+
+What it establishes: the verbatim cycle was never the disease, only its most
+compressible form. Remove it and the capture persists as fuzzy anaphora, which
+is what runs 5, 7 and 8 said the underlying object was. The part of the
+prediction that failed is the assumption that a blocked cycle would fall through
+to exit A; it falls through to a longer ladder instead.
+
+### Next step
+
+1. **Charter item 2 is already done**: `/workspace/final_training_corpus_v2_2_bq.json`
+   (Aug 26) is v2_1 with all 500 `> ` occurrences stripped — 107 entries differ,
+   0 brief targets still contain it, 702 entries, chapter branch untouched.
+   Verified this session.
+2. **Charter item 3 — the retrain — is next.** One change, new OUTPUT_DIR,
+   checkpoints saved, `padding_free` pinned. Score with `scripts/score_guard.py`
+   (termination + anaphora + register in one pass) and spot-check 3 briefs.
+3. **An untested sampler idea this run points at, static cost already
+   measured:** a *sentence-opening* guard — forbid reusing the two-word opening
+   of the previous 4 sentences — targets the first rung rather than the
+   verbatim period. It would touch 3.7% of corpus long-form sentences, 0.6% of
+   base's generations and 34.6% of the adapter's de-looped ones.
+   `scripts/gen_opening_guard.py` is drafted and **unrun and untested**; it is
+   parked behind the charter order.
+
+Budget this series: 0/2 training runs, **11/60 generations**, ~16 GPU-minutes.
