@@ -1,0 +1,5 @@
+2026-09-22T00:56Z  pre-registered before sampling checkpoint-62 (variant G at epoch 1.0, step 62 of 124)
+Question: does the capture strengthen with exposure (3 copies x 2 epochs = 6 passes), so that 1 epoch is the cheaper retrain?
+Prediction: cap-loops 5-7/10 (not below G's 7/10 by more than chance); de-looped median between F (258) and G (773), i.e. 400-700 words.
+Falsifier for "1 epoch on v2_3" as the last training run: if checkpoint-62 caps >= 7/10 the epoch count is not what drives the capture and (a) is dead; if it caps <= 3/10 with de-looped median >= 600, (a) is the run to make.
+Cost: 10 generations (series 34 -> 44 / 60), 0 training runs, no briefs (a checkpoint probe is not a ship candidate).
