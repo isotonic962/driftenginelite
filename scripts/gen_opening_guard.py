@@ -126,9 +126,14 @@ def main():
         with model.disable_adapter():
             dis = model(ids).logits[0, -1]
     delta = (live - dis).abs().max().item()
-    assert delta > 0, "F2: adapter arm is not live"
     print(f"falsifier F1: system sha ok, prefix {ids.shape[1]} tokens", flush=True)
-    print(f"falsifier F2: adapter live, max |logit delta| = {delta:.3f}", flush=True)
+    if args.scale == 0.0:
+        # base cell: the sixth run's falsifier -- scale 0 must be bit-identical to disable_adapter()
+        assert delta == 0, f"F2: scale-0 arm is not base (delta {delta})"
+        print(f"falsifier F2: scale 0 == disable_adapter, max |logit delta| = {delta:.3e}", flush=True)
+    else:
+        assert delta > 0, "F2: adapter arm is not live"
+        print(f"falsifier F2: adapter live, max |logit delta| = {delta:.3f}", flush=True)
 
     results = []
     for i in range(1, args.n + 1):
@@ -159,7 +164,7 @@ def main():
         print(f"[{i}/{args.n}] seed {seed}  {finish}  {len(words)}w  repeat_span {span}  "
               f"anaph~{rate:.1f}%  run~{run}  guard fired {log['interventions']}x  "
               f"({time.time() - t0:.0f}s)", flush=True)
-        json.dump(dict(variant="F", adapter=args.adapter, base=BASE, system_sha256=SYSTEM_SHA,
+        json.dump(dict(variant="base" if args.scale == 0.0 else args.adapter, adapter=args.adapter, base=BASE, system_sha256=SYSTEM_SHA,
                        user=args.user, kw=KW, master_seed=args.master_seed,
                        max_new_tokens=args.max_new_tokens, opening_guard_window=args.window,
                        no_repeat_ngram_size=args.ngram, lora_scale=args.scale,

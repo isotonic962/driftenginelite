@@ -1,0 +1,9 @@
+corpus chapters n=138: median 18.3  p90 29.2  max 37.2   (window 4)
+
+arm                       n per-sample                                           median  >p90
+variant F (unguarded)    10   91   58   62   70   38   87   70   61   79   96      70.0 10/10
+F + ngram guard          10   85   86   62   75   93   98   65   75   56   52      75.3 10/10
+variant G                10   91   40   42   40   35   36   36   52   72   46      41.3 10/10
+G + opening guard        10   31   70   59   43   49   33   35   57   25   41      42.2  9/10
+G @ epoch 1              10   76   53   51   53   32   93   35   70   46   45      51.9 10/10
+base n=4 (Aug)            4   40   20   45   26                                    32.7  2/4
