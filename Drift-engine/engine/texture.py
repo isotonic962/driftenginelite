@@ -123,4 +123,8 @@ class TextureAnalyzer:
             "dialogue_density": self.dialogue_density(text),
             "sentence_rhythm": self.sentence_rhythm(text),
             "prompt_echo": self.prompt_echo(prompt, text),
+            # length metadata for turn-scale corrections in DriftScorer.
+            # Additive keys only -- downstream .get() consumers unaffected.
+            "n_tokens": len(self._tokenize(text)),
+            "n_sentences": len(self._split_sentences(text)),
         }
