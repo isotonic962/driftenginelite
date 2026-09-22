@@ -1793,3 +1793,181 @@ loss than briefs.
 
 Budget this series: **1/2 training runs, 24/60 generations**, ~88 GPU-minutes
 this session.
+
+---
+
+## 2026-09-22 (twelfth run) — the sentence-opening guard on variant G. Cap-loops 7/10 → 4/10 and EOS 3/10 → 6/10 at chapter length (n.s., paired 4 up / 1 down); the ladder is relocated, not removed — first-word opening reuse is unchanged and the capture finds a longer period
+
+**Adapter under test:** `/workspace/drift_sft_out_v7/adapter` (variant G),
+unchanged. **Ten guarded chapter-prompt samples (series total 34/60), 0
+training runs, ~20 GPU-minutes.** Script `scripts/gen_opening_guard.py`
+(drafted in the tenth run; two edits before running: it now decodes only the
+last 512 tokens per step instead of the whole text — a cost fix, the rule is
+unchanged — and it was unit-tested offline against the tokenizer, where it
+bans the space-led completion of a repeated first word and, as a known gap,
+misses a second word that the tokenizer splits). Data
+`eval/gen_v7_variantG_openguard.json`; run log
+`logs/gen_openguard_variantG_run.log`; scorer `logs/score_openguardG_twelfth.log`.
+
+### The change made
+
+One: a logits processor that forbids a new sentence from reusing the two-word
+opening of any of the previous 4 sentences (window 4, no n-gram guard, no
+scale change). Sampling otherwise byte-identical to the eleventh run.
+
+### Falsifiers
+
+```
+F1  system sha ed40b81d…, prefix 54 tokens                              pass
+F2  adapter live, max |logit delta| = 15.500 (= eleventh run)            pass
+F3  seed-pairing with the eleventh run: every seed shares an identical
+    prefix with its unguarded twin (13–543 words) until the guard first
+    fires                                                                pass
+```
+
+F3 passes here where it failed against the August arms: same host, same
+weights, same seeds. So this comparison, uniquely in the series, is
+**paired**. Comparisons with F and base remain unpaired.
+
+### Result
+
+```
+ i fin  raw w delp w span ch  anaph%  run  int% int pct@W agri  1p/1k  guard fired   unguarded twin
+ 1 EOS    157    157      13     0.0    1   0.0      27.2    0  101.9        5        CAP 2062 (ordinal ladder)
+ 2 CAP   2160   1031    5599     0.0    1  12.5      83.7    4    0.0      142        CAP 1935
+ 3 CAP   1956   1540    1988    33.3   11   2.1       9.4    1   88.5      289        CAP 2153
+ 4 EOS    887    604    1450     0.0    1   9.4      65.2    0  115.9       48        CAP 2192
+ 5 EOS    926    836     419     4.4    2  21.7      97.1    0   37.1       52        CAP 2101
+ 6 EOS    486    486      26     9.3    4   2.3      19.9    3   52.0       22        CAP 1766
+ 7 EOS   1423   1302     586     5.8    5   6.7      46.0    0   30.6       75        EOS 1206
+ 8 CAP   1824    513    4535    16.5    6   0.0       8.3    0   93.7      270        EOS  803
+ 9 CAP   1783   1079    3865     0.0    1  11.4      78.3    0   51.0      116        CAP 2181
+10 EOS    861    861      33     4.4    2  10.1      73.9    0   87.1       40        EOS 1362
+
+arm           n  EOS CAP loop* med delp w  EOS w range  med an%  >cMAX  med int%  med pct  >p90  agri/1k  first-word reuse
+variant F    10    5   5    5        258      200-405     24.5    7/10     19.4     87.5     5     1.22     70.0
+variant G    10    3   7    9        773     803-1362     28.8    8/10     11.0     70.1     4     0.41     41.3
+G + guard    10    6   4    7        848     157-1423      4.4    3/10      8.1     55.6     1     0.94     42.2
+base          4    4   0    0        750      652-819      0.0    0/4       1.7     16.5     0     5.98     32.7
+corpus chapters (n=138)                                    1.1 (max 8.9)      7.0                             18.3 (p90 29.2, max 37.2)
+```
+
+(`loop*` = CAP or a ≥200-char verbatim repeat. `first-word reuse` = share of
+sentences whose first word equals the first word of one of the previous 4
+sentences, on de-looped text — a post-hoc instrument, defined this run because
+the two-word anaphora rate is what the guard forbids and so cannot serve as
+its evidence.)
+
+Against the prediction on record (eleventh run, next step 1):
+
+| prediction | result | |
+|---|---|---|
+| loop* 9/10 → ≤ 5/10 | 7/10 | **failed** |
+| EOS ≥ 6/10 | 6/10 | met, at the boundary |
+| median EOS length ≥ 800 | 874 (157, 486, 861, 887, 926, 1423) | met |
+| guard fires ≥ 20x per sample | 9/10 (#1 fired 5x and stopped at 157) | met |
+| falsifier: cap-loops persist ≥ 7/10 → not rung-initiated | cap 4/10 | not triggered |
+
+1. **Termination — direction right, not established.** Paired by seed: 4
+   seeds go CAP → EOS (#1, #4, #5, #6), 1 goes EOS → CAP (#8), 5 unchanged.
+   Exact McNemar on the 5 discordant pairs p = 0.375; unpaired Fisher on
+   3/10 vs 6/10 p = 0.37. Cap-loops 7/10 → 4/10 (p = 0.37). Three of the six
+   EOS samples (#4, #5, #7) still contain a ≥200-char verbatim block before
+   the stop — exit A inside a cycle, the seventh run's pattern — so on the
+   loop* criterion the improvement is 9/10 → 7/10 (p = 0.58).
+2. **Length — held.** De-looped median 848 (G 773, p = 0.58); EOS lengths
+   157–1423, median 874. #7 stops at 1423 words, the corpus chapter median to
+   within three words. Against F (258, EOS 200–405) the eleventh run's
+   sustain result stands under the guard.
+3. **The ladder moved; it did not go away. This is the finding.** The
+   two-word anaphora rate falls 28.8 → 4.4 and 8/10 → 3/10 past the corpus
+   max — *by construction*, and not to be quoted. On the instrument the
+   guard does not touch, first-word reuse is 41.3 → 42.2 (paired-seed
+   two-sided p = 0.58), still above base (32.7) and the corpus p90 (29.2).
+   The four caps are cycles the rule cannot see: #2 is an eight-sentence
+   period in which every sentence opens "He …" with a different second word
+   ("He sat at the table … He looked around the room … He wanted to remember
+   it … He got up and went …"), #8 and #9 likewise. Same result as the tenth
+   run's n-gram guard, one level up: forbid the verbatim period and the
+   capture paraphrases; forbid the two-word rung and the capture varies the
+   second word and lengthens the period past the window.
+4. **Register — best numbers in the series, all n.s.** Interiority median
+   8.1, percentile 55.6, 1/10 past p90 (G: 11.0 / 70.1 / 4; corpus median
+   7.0; two-sided p = 0.44 vs G). Agri 0.94/1k. Not evidence of anything on
+   its own; noted because it is the first arm to sit inside the corpus's
+   interiority band.
+5. **A post-hoc observation the eleventh run missed.** On first-word reuse,
+   F → G is 70.0 → 41.3, unpaired two-sided p = 0.018. The retrain *did*
+   reduce the single-word ladder that the two-word instrument (p = 0.34)
+   could not see. `[post-hoc instrument, one comparison, not pre-registered]`
+   — it goes on the list of things a pre-registered replication would test,
+   not into the headline.
+
+### Prose
+
+**#1 (157 w, EOS)** — whole. The seed that unguarded ran an ordinal ladder to
+2,062 words; the guard fired five times and it closed a scene:
+
+> …It means that I can't write about anything else. You are right. It might
+> have been better if I hadn't said anything at all. But now I can't stop
+> thinking about it. You have no reason to fear anything. You will write about
+> what interests you, and it will be fine. If you like, I will help you look up
+> some sources on your own. Thank you. That would be nice. I have to go.
+> Goodbye.
+
+**#7 (1423 w, EOS)** — same opening as the eleventh run's #7 (paired), and it
+ends by repeating one dialogue paragraph verbatim and then stopping:
+
+> "She will," the man said. "She has a very strong mind, and she is determined
+> to recover. I know she will recover. But I don't want to lose her. I need
+> your help, Mrs. Svedmyr. Please help me."
+
+**#2 (cap)**, the cycle the guard cannot see:
+
+> He sat at the table with a cup of coffee in front of him. He looked around
+> the room, thinking about the dream he had had. He wanted to remember it, but
+> he couldn't. He got up and went to work in the kitchen. He didn't remember
+> any dreams that night either. He felt frustrated, because he couldn't
+> remember the dream. He worked in the garden the next day, but he couldn't
+> remember any dreams.
+
+### Verdict
+
+**IMPROVED on termination in direction only (paired 4 up / 1 down, p = 0.375),
+length held, ladder relocated not removed.** The guard is not a fix. Combined
+with the tenth run it establishes a pattern worth stating as such: **every
+sampler-side constraint so far is absorbed by the capture at the next level
+of abstraction** — verbatim period → paraphrase; two-word rung → one-word rung
+with a longer period. A constraint that reaches the first-word level would
+touch 18% of corpus chapter sentences (median) and cannot be applied.
+
+Engine note: `engine/drift_engine.py` samples the local backend at
+`repeat_penalty=1.1`, `max_tokens=2048`, and `rolling_baseline.py` varies
+temperature/penalty per state (0.55–0.78 / 1.03–1.08). None of the recorded
+arms were run at those settings; nothing measured here transfers to the engine
+without a run at the engine's own sampler, and the opening guard is an HF
+logits processor that the llama.cpp backend cannot host as written.
+
+### Next step
+
+1. **No second guard variant.** Two sampler runs have both been absorbed; a
+   third (wider window, first-word rule) is predicted to be absorbed or to
+   exceed the corpus's own reuse rate, and would spend 10 generations to
+   learn which.
+2. **The last training run, if spent, should target the capture's period
+   rather than the branch mix.** The one thing that has moved the ladder at
+   all is G's corpus change (first-word reuse 70 → 41, post-hoc). Candidates,
+   one per run, cheapest first: (a) 1 epoch on v2_3 (halves exposure; tests
+   whether the capture strengthens with epochs — free to falsify against
+   `checkpoint-62`, which is epoch 1 of this run, at 10 generations and no
+   training); (b) chapter x3 with the brief branch dropped to x0.5 (tests
+   whether the brief branch's short-stop schedule is what fires exit A inside
+   the ladder). **(a) via checkpoint-62 first: it costs no training run.**
+3. **Engine-side, when an adapter is worth shipping:** run 10 samples at the
+   engine's own sampler settings before changing anything in `drift_engine.py`.
+
+Budget this series: **1/2 training runs, 34/60 generations**, ~108
+GPU-minutes this session. **Push is blocked on this pod** (no GitHub
+credential: `could not read Username for 'https://github.com'`); the tenth,
+eleventh and twelfth runs are committed locally on `claude/new-session-z1flke`
+and need the owner to push.

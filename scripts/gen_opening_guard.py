@@ -27,6 +27,7 @@ from gen_guarded import (BASE, ADAPTER, SYSTEM, SYSTEM_SHA, USER, PREFIX_TOKENS,
                          MASTER_SEED, KW, sha16, max_repeat_span, anaphora)
 
 _SENT = re.compile(r'(?<=[.!?"”\n])\s+')
+TAIL_TOKENS = 512   # decoded context per step; 4 sentences + the current one never need more
 _WORD = re.compile(r"[\w']+")
 
 
@@ -49,7 +50,10 @@ def make_processor(tok, prompt_len, window, log):
 
     class OpeningGuard(LogitsProcessor):
         def __call__(self, input_ids, scores):
-            text = tok.decode(input_ids[0, prompt_len:], skip_special_tokens=True)
+            # Only the tail is needed (window sentences + the current one); decoding
+            # the whole text every step is O(n^2) and costs ~50 ms/step at 1.2k tokens.
+            start = max(prompt_len, input_ids.shape[1] - TAIL_TOKENS)
+            text = tok.decode(input_ids[0, start:], skip_special_tokens=True)
             sents = [s for s in _SENT.split(text)]
             if len(sents) < 2: return scores
             # a trailing boundary means the current sentence is empty
