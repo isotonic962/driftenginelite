@@ -1,0 +1,7 @@
+2026-09-22T01:42Z  pre-registered before running scripts/boundary_entropy.py
+Texts: the 14 clean base chapter generations (gen_base_control.json n=4, eval/gen_base_n10_cap2560.json n=10), teacher-forced under the chapter prompt.
+Boundary: a token position whose next token begins a new sentence (decoded prefix ends in . ! ? " or ” followed by whitespace, and the next token starts with a space + word character).
+Measure: Shannon entropy (nats) of the next-token distribution at each boundary, per arm (base = G scaled to 0, F, G), paired per boundary; also the probability mass on the single most likely opening token.
+Predictions: (1) adapter entropy < base entropy at the median boundary, F by more than G; (2) the gap is larger on boundaries at >= 500 words of prefix than below; (3) G between F and base.
+Falsifier: if adapter boundary entropy is not below base's (median paired delta >= 0 nats), "concentration of sentence-opening mass" is not the mechanism and the eighth run's F2 boost reading is dead too.
+Cost: 0 generations, ~10 GPU-minutes.
