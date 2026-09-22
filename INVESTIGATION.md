@@ -11,8 +11,27 @@ a human triggers both. Protocol:
   is the point — it is what stops the next session re-running a dead test.
 - Numbers only. If a claim has no run behind it, mark it `[unverified]`.
 
-Last updated: 2026-08-26. ANAPHORA-HAZARD RESULT IS IN (post-6781c1b instrument):
-the ladder is a self-conditioning runaway, not weight pressure. Read that section first.
+Last updated: 2026-09-22, after merging main (runs 8-9, corridor recalibration,
+turn-scale scorer, guard-run script). **The anaphora-hazard verdict below is
+RETRACTED by the ninth run** — see docs/EXPERIMENT_LOG.md. Current live picture:
+
+- The ninth run teacher-forced BASE's own four clean chapter generations
+  (652-819 w, all EOS, zero loops) through the adapter: **ELEV is positive
+  there too** (median +0.937). Positive ELEV is what the instrument reads on
+  any off-manifold chapter-length text; it does not mark pre-loop boundaries.
+  The whirlpool/self-conditioning story built on the +0.642 pre-loop cell
+  (n=30) is dead, and absolute repeat hazards are 5+ orders of magnitude below
+  sampling relevance in both models. The anaphora measurement line is CLOSED.
+- **The reframe that matters:** base already writes 652-819-word chapters and
+  ends every one properly. The adapter cuts that to 100-450. The fine-tune is
+  not failing to teach length — it is SHORTENING a working base by two-thirds.
+  OPEN 3 is now "stop the adapter shortening output", and the third run's
+  dose-response makes **LoRA scale the thing to test before paying for any
+  corpus rebuild or retrain**.
+- A sampler guard run remains arguable on cheap-intervention grounds only
+  (loops hit 5/10 chapter samples); if run, score it on loop incidence and
+  register, never on ELEV. The script exists: seed-paired chapter sampling
+  under no_repeat_ngram (merged from main).
 Read DESIGN INTENT, THE REAL PROBLEM, and CORPUS VERSIONS first.
 
 ---
@@ -95,7 +114,7 @@ the voice. Register is no longer an open problem.
   separate arm (same samples with and without) to see what the model does when
   the loop exit is forced.
 
-## ANAPHORA-HAZARD VERDICT (post-fix instrument) — the fork is resolved: GENERATION-SIDE
+## ANAPHORA-HAZARD VERDICT — **RETRACTED 2026-09-22 by the ninth run's base-control** (kept for the record; do not act on it)
 
 Run: `logs/anaphora_hazard_run.log`, data `eval/anaphora_hazard.json` (7481
 boundaries, 4310s, K=6-token candidates, control openings ≥8 sentences away,
