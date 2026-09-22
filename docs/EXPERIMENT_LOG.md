@@ -2340,3 +2340,124 @@ The entropy-matched temperature test, pre-registered in
 sample variant G at the T* where its boundary entropy on the base texts
 equals base's at 0.7. `scripts/match_temperature.py` gives **T* = 0.4**
 (G 0.484 nats at 0.40, 0.617 at 0.45; base 0.548 at 0.70).
+
+---
+
+## 2026-09-22 (sixteenth run) — variant G at the entropy-matched temperature T* = 0.4. 6/6 cap, cycles close after 62–204 words. The flattening is not the ladder's cause; it is what delays the ladder. The adapter's low-temperature path is a cycle
+
+**Adapter:** variant G, unchanged. **Six chapter samples (series total 60/60 —
+the generation budget is spent), 0 training runs, ~17 GPU-minutes.**
+Prediction pre-registered in `logs/prediction_entropy_matched_T.txt`
+(`b7a8c1b`); T* = 0.4 from `scripts/match_temperature.py` (`eval/match_temperature.json`),
+committed before sampling. `scripts/gen_opening_guard.py --window 0
+--temperature 0.4`, otherwise the recorded sampler (min_p 0.05, repetition
+penalty 1.05, cap 2560). Seeds 20260827–32, paired with G's #1–6 at T = 0.7.
+Data `eval/gen_v7_variantG_T04.json`; run log `logs/gen_variantG_T04_run.log`;
+scorer `logs/score_G_T04_sixteenth.log`.
+
+### Falsifiers
+
+```
+F1  system sha ed40b81d…, prefix 54 tokens                    pass
+F2  adapter live, max |logit delta| = 15.500                   pass
+F3  seed-paired with G @ 0.7 (same host, same weights)         by construction
+```
+
+### Result
+
+```
+ i fin  raw w delp w span ch  anaph%  run  int%  agri   novel words before the cycle   G @ 0.7, same seed
+ 1 CAP   2367    142    5952    33.3    4   0.0     0    143                            CAP, novel 2062 (ordinal ladder)
+ 2 CAP   2141    100    5123    16.7    2  28.6     0    100                            CAP, novel  885
+ 3 CAP   2240    159    4818   100.0   11   0.0     0    159                            CAP, novel  735
+ 4 CAP   1697     71    4066     0.0    1   0.0     0     71                            CAP, novel  593
+ 5 CAP   2132    204    5714    55.0   11   9.5     0    204                            CAP, novel  788
+ 6 CAP   1743     62    4554     0.0    1   0.0     0     62                            CAP, novel  604
+
+arm                 n  EOS CAP  med novel w   novel range   med an%  first-word reuse
+G @ T=0.4           6    0   6        121        62-204      25.0     68.8  (5/6 > corpus p90)
+G @ T=0.7 (same 6)  6    0   6        762       593-2062     ~30      41   (median of the 10)
+base @ T=0.7       10   10   0        546       466-995       0.0     37.6
+```
+
+Against the prediction:
+
+| prediction | result | |
+|---|---|---|
+| if flattening is the mechanism: caps ≤ 2/6 | 6/6 | **falsified** |
+| falsifier: caps ≥ 4/6 → flattening is not the mechanism | 6/6 | **triggered** |
+| first-word reuse < 41 | 68.8 | falsified, and back at F's level |
+
+1. **Matching the adapter's boundary entropy to base's makes the capture
+   ~6x faster, not slower.** Paired by seed, every sample's cycle closes
+   earlier at 0.4 than at 0.7 (62–204 vs 593–2062 words; 6/6, sign test
+   p = 0.03). The cycles are short and verbatim from the outset: #6 is
+   "He looked up again. … He looked down again. …" from word 62; #4 from
+   word 71.
+2. **So the +1.2 nats is protective.** The adapter's *mode* at a boundary —
+   what it would say greedily — is already the rung; the spread the
+   fifteenth run measured is the sampling noise that keeps the text off that
+   path for a few hundred words. Reduce the noise and the path is taken at
+   once. This is why runs 8–9 found no repeat mass on clean prefixes: the
+   rung is not a high-probability *repeat*, it is the highest-probability
+   *shape* ("He looked …", "She thought that …", "I'm helping you see
+   …") — the seventh/tenth runs' fuzzy ladder — and the exact-repeat probe
+   measured the wrong thing.
+3. **Base at T = 0.7 never takes such a path** (0/14), with a boundary
+   distribution that is *sharper* than the adapter's at 0.4 (0.55 vs 0.48
+   nats median). Sharpness is not the variable; what the sharp distribution
+   is centred on is.
+4. **Register at T = 0.4:** interiority 0.0, agri 0.00, first-word reuse
+   68.8 (F's level, up from G's 41). The prose collapses into the ladder
+   before any register is established.
+
+### Verdict
+
+**WORSE (6/6 vs the same seeds' 6/6 cap at 0.7, but at one-sixth the
+length), and ESTABLISHED as mechanism:** the adapter's most probable
+continuation at a sentence boundary is a rung. Temperature is not a lever
+downward; whether it is one *upward* (0.8–0.9: more noise, later capture,
+at the cost of coherence) is untested and is the obvious cheap question the
+budget no longer covers.
+
+Across the sixteen runs the picture is now closed enough to state:
+
+- Base: 466–995 words, clean EOS, 0/14 captures, obeys the register prompt.
+- Any adapter from this corpus at the chapter prompt: a mode that is a
+  ladder, reached within ~100 words greedily and within ~250 (F) to ~770
+  (G) words at T = 0.7; nothing sampler-side removes it (n-gram, opening
+  guard, temperature down), nothing exposure-side changes it (epoch 1 =
+  epoch 2), and more chapter data only moves the entry point.
+- The brief branch (33–96 words, 3/3 EOS, corpus band) is unaffected and
+  remains the production path.
+
+### Next step
+
+1. **The last training run is the only budget left, and the evidence now
+   says what it should test.** Not the branch mix, not exposure, not
+   epochs: the *mode*. The corpus's chapter targets have a first-word reuse
+   of 18.3 (p90 29.2) and the adapter's is 41–70 — the adapter has learned
+   a sentence-shape prior the corpus does not have. Two candidates, one run:
+   (a) **drop the brief branch entirely** (chapter-only, 138 x 3, same
+   hyperparameters) — tests whether the 564 short, dialogue-heavy,
+   "He said / She said"-shaped briefs are the source of the shape prior
+   (brief targets: median 52 words, dialogue-dense; the ladders are built of
+   exactly their sentence forms); (b) LoRA on the MLP projections as well
+   as attention — off the table, it is a HARD REQ. **(a)** is the run.
+   Prediction to register before it: chapter-only first-word reuse < 41
+   and cap-loops < 7/10 at T = 0.7; brief-branch behaviour will regress (it
+   is the branch being removed), so this is a diagnostic run, not a ship
+   candidate, and the charter's brief spot-check is expected to fail.
+2. **Free, before that run:** first-word reuse on the brief targets
+   themselves (window 4 across the 564), to see whether the shape prior is
+   visible in the data the adapter got. If the brief branch scores ≥ 40,
+   (a) is well-motivated; if it scores near the chapter branch's 18, the
+   prior is not in the data and (a) is weaker.
+3. **Engine:** unchanged advice. Nothing here was sampled at the engine's
+   settings; the engine's `repeat_penalty 1.1` and rolling temperature
+   0.55–0.78 sit in a range this series has now measured at both ends (0.4:
+   worse; 0.7: as recorded).
+
+Budget this series: **1/2 training runs, 60/60 generations** — the
+generation budget is spent. ~184 GPU-minutes this session. Push still
+blocked on the pod.
