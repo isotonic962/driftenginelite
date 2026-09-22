@@ -33,7 +33,15 @@ def generate(user_input, advance_scene=False):
         scene_counter=SCENE,
     )
 
+    last = _engine.last or {}
+
     print("Engine:", output)
+    print(
+        f"  [LENGTH] {last.get('word_count')} words / "
+        f"{last.get('output_tokens')} tokens  "
+        f"finish={last.get('finish_reason')}"
+        f"{'  TEMPLATE-LEAK' if last.get('template_leak') else ''}"
+    )
     print(f"  [SCENE] {SCENE.current}/{SCENE.total} (chapter {SCENE.current_chapter()}/10)")
     print(f"  [DRIFT STATE] {round(_engine.state.get_state(), 3)}")
 

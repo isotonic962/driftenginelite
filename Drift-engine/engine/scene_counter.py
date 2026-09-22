@@ -103,13 +103,23 @@ class SceneCounter:
 
     def inject(self):
         """
-        Returns scene injection string per escalation curve, or empty string.
-        Thresholds are proportional to self.total — confirmed correct behavior,
-        not an artifact. Breaking-point band is always 10% of total:
-        1 scene wide at total=10, 4 scenes wide at total=40.
+        Returns the arc-position injection string per escalation curve, or
+        empty string. Thresholds are proportional to self.total — confirmed
+        correct behavior, not an artifact. Breaking-point band is always 10%
+        of total: 1 scene wide at total=10, 4 scenes wide at total=40.
+
+        The injected line is worded in CHAPTERS, not scenes, even though the
+        counter itself is scene-based. This string is prepended to the system
+        prompt, so it is the first thing the model reads, and the anchor
+        directly below it asks for one full chapter per response. Saying
+        "Scene 25 of 40" there primed a scene-sized unit of output against a
+        chapter-sized instruction — the two halves of the system prompt
+        disagreed about how much prose a turn is. current_chapter() already
+        maps position onto the anchor's ten-chapter arc, so it is used here.
         """
         n = self.current
         t = self.total
+        ch = self.current_chapter()
 
         silent_cutoff = t * 0.60
         pressure_cutoff = t * 0.80
@@ -118,8 +128,8 @@ class SceneCounter:
         if n <= silent_cutoff:
             return ""
         elif n <= pressure_cutoff:
-            return f"[Scene {n} of {t}. The departure approaches.]\n"
+            return f"[Chapter {ch} of 10. The departure approaches.]\n"
         elif n <= breaking_point:
-            return f"[Scene {n} of {t}. Breaking point. The decision cannot be deferred.]\n"
+            return f"[Chapter {ch} of 10. Breaking point. The decision cannot be deferred.]\n"
         else:
-            return f"[Scene {n} of {t}. {self.endpoint}.]\n"
+            return f"[Chapter {ch} of 10. {self.endpoint}.]\n"

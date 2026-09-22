@@ -1,0 +1,27 @@
+483 boundaries over 14 texts
+                      base       F       G     F-base   G-base      G-F
+entropy H (nats)     0.916   2.204   2.428     +1.261   +1.429   +0.150   share F<base 0.01 (sign p=1.5e-138)  G<base 0.00 (p=8.0e-146)  G<F 0.20 (p=4.8e-43)
+top-1 prob           0.699   0.446   0.416     -0.215   -0.258   -0.028   share F<base 0.90 (sign p=5.1e-81)  G<base 0.92 (p=3.7e-89)  G<F 0.71 (p=1.7e-21)
+logp(true opening)  -0.413  -1.149  -1.289     -0.541   -0.671   -0.093   share F<base 0.92 (sign p=5.1e-86)  G<base 0.94 (p=4.3e-98)  G<F 0.77 (p=6.4e-33)
+
+by prefix length (words):
+     0-250   n=155  base H 1.156  F-base +1.722  G-base +1.894  share F<base 0.00  G<base 0.00
+   250-500   n=189  base H 0.813  F-base +1.134  G-base +1.335  share F<base 0.01  G<base 0.00
+   500-750   n=104  base H 0.773  F-base +1.166  G-base +1.365  share F<base 0.01  G<base 0.00
+   750-      n= 35  base H 0.656  F-base +0.937  G-base +1.154  share F<base 0.03  G<base 0.00
+
+per text (median H):
+  aug1   n= 33  base 0.69  F 2.09  G 2.37
+  aug2   n= 59  base 0.47  F 1.77  G 1.99
+  aug3   n= 42  base 0.99  F 2.63  G 2.73
+  aug4   n= 20  base 1.52  F 3.24  G 3.31
+  sep1   n= 39  base 0.74  F 2.43  G 2.56
+  sep2   n= 26  base 1.11  F 2.70  G 2.84
+  sep3   n= 26  base 0.77  F 2.17  G 2.37
+  sep4   n= 16  base 0.96  F 2.31  G 2.51
+  sep5   n= 25  base 0.91  F 2.08  G 2.30
+  sep6   n= 52  base 0.95  F 2.12  G 2.26
+  sep7   n= 26  base 1.14  F 3.02  G 3.33
+  sep8   n= 30  base 0.92  F 2.33  G 2.51
+  sep9   n= 38  base 0.92  F 1.92  G 2.05
+  sep10  n= 51  base 0.90  F 1.95  G 2.13

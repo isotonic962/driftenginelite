@@ -1,0 +1,51 @@
+
+=== unguarded  (/workspace/gen_v6_cap2560.json)
+ i fin  raw w delp w span ch  anaph%  run  int% int pct@W agri  1p/1k
+ 1 EOS    374    374      66    58.8   21  60.0     100.0    0  149.7
+ 2 CAP   2354    447    5530    26.3    7  51.3     100.0    0    0.0
+ 3 CAP   1861    200    5067     0.0    1   4.8      47.1    0  100.0
+ 4 EOS    405    405      84    34.2    6  20.5      92.0    0   14.5
+ 5 EOS    200    200      32     0.0    1   0.0      22.8    0    0.0
+ 6 CAP   2151    720    5290     0.8    2   0.8       8.0    4    0.0
+ 7 CAP   2362    146    5615    20.0    2  18.2      83.0    0  191.8
+ 8 EOS    263    263      36    22.7    4   8.7      64.9    0   57.0
+ 9 EOS    252    252      34    31.0    5  26.7      94.2    0    0.0
+10 CAP   2263    233    5942    39.1   10  45.8     100.0    0    0.0
+
+=== base_n10  (eval/gen_base_n10_cap2560.json)
+ i fin  raw w delp w span ch  anaph%  run  int% int pct@W agri  1p/1k
+ 1 EOS    780    780      25     0.0    1   0.0       4.0    3    0.0
+ 2 EOS    514    514      18     0.0    1   3.0      22.8    2    0.0
+ 3 EOS    508    508      23     0.0    1   3.1      23.6    1    0.0
+ 4 EOS    466    466      15     0.0    1   9.5      66.3    3    0.0
+ 5 EOS    509    509      16     0.0    1   3.0      22.8    1    0.0
+ 6 EOS    995    995      19     0.0    1   1.5       9.8    2    0.0
+ 7 EOS    547    547      17     0.0    1   0.0       8.0    6    0.0
+ 8 EOS    546    546      21     0.0    1   2.8      22.5    2    0.0
+ 9 EOS    816    816      27     0.0    1   2.3      17.4    3    1.2
+10 EOS    901    901      24     0.0    1   1.6      11.6    2    0.0
+
+=== base  (/workspace/gen_base_control.json)
+ i fin  raw w delp w span ch  anaph%  run  int% int pct@W agri  1p/1k
+ 1 EOS    788    788      29     0.0    1   0.0       4.0    4    0.0
+ 2 EOS    819    819      26     0.0    1   3.4      26.8    1   16.6
+ 3 EOS    713    713      20     0.0    1   4.0      31.2    6    0.0
+ 4 EOS    652    652      21     0.0    1   0.0       6.2    7    0.0
+
+corpus long-form anaphora: p90 3.3  max 8.9  max run 3
+
+arm         n  EOS loop med raw w med delp w  EOS w range med an% mean an% >cMAX run>c med int% med pct >p90 agri/1k
+unguarded  10    5    5      1133        258      200-405    24.5     23.3     7     6     19.4    87.5    5    1.22
+base_n10   10   10    0       546        546      466-995     0.0      0.0     0     0      2.5    19.9    0    3.77
+base        4    4    0       750        750      652-819     0.0      0.0     0     0      1.7    16.5    0    5.98
+loop (CAP or >=200ch repeat)       unguarded 5/10  base_n10 0/10  Fisher p = 0.0325
+EOS                                unguarded 5/10  base_n10 10/10  Fisher p = 0.0325
+anaphora > corpus MAX              unguarded 7/10  base_n10 0/10  Fisher p = 0.0031
+EOS and 250-450 w (prediction band) unguarded 4/10  base_n10 0/10  Fisher p = 0.0867
+
+prediction check on the seeds that cap-looped unguarded:
+  seed i=2: unguarded CAP 2354w -> base_n10 EOS 514w anaph 0.0% run 1  out of band
+  seed i=3: unguarded CAP 1861w -> base_n10 EOS 508w anaph 0.0% run 1  out of band
+  seed i=6: unguarded CAP 2151w -> base_n10 EOS 995w anaph 0.0% run 1  out of band
+  seed i=7: unguarded CAP 2362w -> base_n10 EOS 547w anaph 0.0% run 1  out of band
+  seed i=10: unguarded CAP 2263w -> base_n10 EOS 901w anaph 0.0% run 1  out of band

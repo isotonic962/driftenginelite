@@ -1,0 +1,4 @@
+chapter p90 (v2_1, window 4): 29.2
+kept 893 = 414 chapter + 479 brief;  dropped 85 briefs
+kept-brief reuse: scorable 145  median 14.3  max 28.6  share>p90 0.00
+wrote /workspace/final_training_corpus_v2_4_briefclean.json  sha256[:16] b092e24d5cf9a0fd
