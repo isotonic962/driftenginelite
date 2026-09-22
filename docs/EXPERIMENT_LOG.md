@@ -2461,3 +2461,22 @@ Across the sixteen runs the picture is now closed enough to state:
 Budget this series: **1/2 training runs, 60/60 generations** — the
 generation budget is spent. ~184 GPU-minutes this session. Push still
 blocked on the pod.
+
+**Addendum (same session, free): first-word reuse in the training data
+itself** (`logs/first_word_reuse_brief_targets.log`, window 4, same rules).
+
+```
+set                          n   scorable  median   p90   share > chapter p90 (29.2)
+brief targets              564      230     22.2   57.1        0.37
+brief targets, blocks of 10 57       57     24.5   42.3        0.39
+chapter targets            138      138     18.3   29.2        0.09
+```
+
+The brief branch's median is close to the chapter branch's, but its tail is
+not: 37% of scorable briefs exceed the chapter branch's p90, and the brief p90
+(57) is where F's generations sit (median 70) and above G's (41). The shape
+prior is visible in the data, in the tail of the brief branch. Next step 1(a)
+— chapter-only — is motivated; a gentler variant that keeps the production
+branch, **dropping only the briefs above 29.2 first-word reuse (~85 of 230
+scorable)**, is the version that would not regress the brief spot-check by
+construction, and is the better candidate for the single remaining run.
