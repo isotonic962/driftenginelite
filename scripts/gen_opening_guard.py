@@ -97,7 +97,9 @@ def main():
     ap.add_argument("--out", default="/workspace/gen_v6_openguard.json")
     ap.add_argument("--master-seed", type=int, default=MASTER_SEED)
     ap.add_argument("--max-new-tokens", type=int, default=2560)
+    ap.add_argument("--temperature", type=float, default=None, help="override KW temperature (recorded arms: 0.7)")
     args = ap.parse_args()
+    if args.temperature is not None: KW["temperature"] = args.temperature
 
     assert hashlib.sha256(SYSTEM.encode()).hexdigest() == SYSTEM_SHA, "F1: system prompt drifted"
     import torch
@@ -166,7 +168,7 @@ def main():
               f"({time.time() - t0:.0f}s)", flush=True)
         json.dump(dict(variant="base" if args.scale == 0.0 else args.adapter, adapter=args.adapter, base=BASE, system_sha256=SYSTEM_SHA,
                        user=args.user, kw=KW, master_seed=args.master_seed,
-                       max_new_tokens=args.max_new_tokens, opening_guard_window=args.window,
+                       max_new_tokens=args.max_new_tokens, opening_guard_window=args.window, temperature=KW["temperature"],
                        no_repeat_ngram_size=args.ngram, lora_scale=args.scale,
                        falsifier_adapter_live=delta, results=results),
                   open(args.out, "w"), indent=1)

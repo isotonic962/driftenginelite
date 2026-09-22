@@ -1,0 +1,51 @@
+🦥 Unsloth: Will patch your computer to enable 2x faster free finetuning.
+🦥 Unsloth Zoo will now patch everything to make training faster!
+==((====))==  Unsloth 2026.8.19: Fast Qwen3 patching. Transformers: 5.5.0.
+   \\   /|    NVIDIA L4. Num GPUs = 1. Max memory: 22.034 GB. Platform: Linux.
+O^O/ \_/ \    Torch: 2.11.0+cu130. CUDA: 8.9. CUDA Toolkit: 13.0. Triton: 3.6.0
+\        /    Bfloat16 = TRUE. FA [Xformers = 0.0.35. FA2 = False]
+ "-____-"     Free license: http://github.com/unslothai/unsloth
+Unsloth: Fast downloading is enabled - ignore downloading bars which are red colored!
+Loading weights:   0%|          | 0/443 [00:00<?, ?it/s]Loading weights:   0%|          | 1/443 [00:05<43:24,  5.89s/it]Loading weights:   1%|          | 4/443 [00:06<08:28,  1.16s/it]Loading weights:   1%|▏         | 6/443 [00:06<04:57,  1.47it/s]Loading weights:   3%|▎         | 12/443 [00:06<01:46,  4.03it/s]Loading weights:   4%|▎         | 16/443 [00:06<01:19,  5.36it/s]Loading weights:   5%|▌         | 24/443 [00:06<00:43,  9.55it/s]Loading weights:   6%|▌         | 27/443 [00:07<00:39, 10.40it/s]Loading weights:   8%|▊         | 34/443 [00:07<00:27, 14.75it/s]Loading weights:   8%|▊         | 37/443 [00:07<00:28, 14.38it/s]Loading weights:  10%|█         | 46/443 [00:07<00:18, 21.26it/s]Loading weights:  11%|█▏        | 50/443 [00:07<00:19, 20.24it/s]Loading weights:  13%|█▎        | 57/443 [00:08<00:16, 23.34it/s]Loading weights:  14%|█▎        | 60/443 [00:08<00:18, 20.94it/s]Loading weights:  15%|█▍        | 65/443 [00:08<00:14, 25.27it/s]Loading weights:  16%|█▌        | 69/443 [00:09<00:37,  9.91it/s]Loading weights:  17%|█▋        | 76/443 [00:09<00:24, 14.89it/s]Loading weights:  18%|█▊        | 80/443 [00:09<00:24, 14.62it/s]Loading weights:  19%|█▊        | 83/443 [00:10<00:22, 15.96it/s]Loading weights:  20%|██        | 90/443 [00:10<00:17, 20.23it/s]Loading weights:  21%|██        | 93/443 [00:10<00:17, 19.50it/s]Loading weights:  23%|██▎       | 101/443 [00:10<00:13, 25.53it/s]Loading weights:  24%|██▎       | 105/443 [00:10<00:14, 23.46it/s]Loading weights:  25%|██▌       | 112/443 [00:11<00:12, 26.15it/s]Loading weights:  26%|██▌       | 115/443 [00:11<00:14, 22.89it/s]Loading weights:  27%|██▋       | 120/443 [00:11<00:11, 27.36it/s]Loading weights:  28%|██▊       | 124/443 [00:11<00:11, 27.84it/s]Loading weights:  29%|██▉       | 128/443 [00:11<00:12, 24.32it/s]Loading weights:  30%|███       | 134/443 [00:11<00:11, 26.60it/s]Loading weights:  31%|███       | 137/443 [00:12<00:13, 23.02it/s]Loading weights:  33%|███▎      | 145/443 [00:12<00:12, 24.00it/s]Loading weights:  33%|███▎      | 148/443 [00:12<00:12, 23.45it/s]Loading weights:  35%|███▌      | 156/443 [00:12<00:10, 27.36it/s]Loading weights:  36%|███▌      | 159/443 [00:13<00:12, 23.37it/s]Loading weights:  37%|███▋      | 164/443 [00:13<00:10, 26.73it/s]Loading weights:  38%|███▊      | 167/443 [00:13<00:12, 22.33it/s]Loading weights:  38%|███▊      | 170/443 [00:13<00:11, 23.36it/s]Loading weights:  40%|████      | 178/443 [00:13<00:09, 28.40it/s]Loading weights:  41%|████      | 182/443 [00:13<00:10, 24.08it/s]Loading weights:  43%|████▎     | 189/443 [00:14<00:09, 26.84it/s]Loading weights:  43%|████▎     | 192/443 [00:14<00:11, 21.23it/s]Loading weights:  44%|████▍     | 197/443 [00:14<00:09, 25.31it/s]Loading weights:  45%|████▌     | 200/443 [00:14<00:09, 24.76it/s]Loading weights:  46%|████▌     | 203/443 [00:14<00:11, 20.07it/s]Loading weights:  48%|████▊     | 211/443 [00:16<00:22, 10.39it/s]Loading weights:  50%|████▉     | 221/443 [00:16<00:12, 17.54it/s]Loading weights:  51%|█████     | 226/443 [00:16<00:13, 16.24it/s]Loading weights:  52%|█████▏    | 232/443 [00:16<00:11, 19.10it/s]Loading weights:  53%|█████▎    | 236/443 [00:16<00:10, 18.92it/s]Loading weights:  55%|█████▌    | 244/443 [00:17<00:08, 23.63it/s]Loading weights:  56%|█████▌    | 248/443 [00:17<00:08, 23.37it/s]Loading weights:  58%|█████▊    | 255/443 [00:17<00:08, 22.63it/s]Loading weights:  58%|█████▊    | 258/443 [00:17<00:08, 22.81it/s]Loading weights:  60%|█████▉    | 265/443 [00:17<00:05, 29.95it/s]Loading weights:  61%|██████    | 269/443 [00:18<00:07, 21.79it/s]Loading weights:  63%|██████▎   | 277/443 [00:18<00:06, 25.83it/s]Loading weights:  63%|██████▎   | 281/443 [00:18<00:06, 23.91it/s]Loading weights:  65%|██████▌   | 288/443 [00:18<00:06, 25.17it/s]Loading weights:  66%|██████▌   | 291/443 [00:19<00:07, 21.18it/s]Loading weights:  67%|██████▋   | 296/443 [00:19<00:05, 25.49it/s]Loading weights:  68%|██████▊   | 300/443 [00:19<00:05, 26.16it/s]Loading weights:  69%|██████▊   | 304/443 [00:19<00:06, 22.32it/s]Loading weights:  70%|██████▉   | 309/443 [00:19<00:04, 27.03it/s]Loading weights:  71%|███████   | 313/443 [00:20<00:06, 19.10it/s]Loading weights:  72%|███████▏  | 321/443 [00:20<00:05, 23.54it/s]Loading weights:  73%|███████▎  | 324/443 [00:20<00:05, 21.43it/s]Loading weights:  75%|███████▌  | 334/443 [00:20<00:04, 25.77it/s]Loading weights:  76%|███████▌  | 337/443 [00:21<00:04, 25.31it/s]Loading weights:  77%|███████▋  | 343/443 [00:21<00:03, 25.26it/s]Loading weights:  78%|███████▊  | 346/443 [00:21<00:04, 21.36it/s]Loading weights:  80%|███████▉  | 354/443 [00:21<00:03, 26.33it/s]Loading weights:  81%|████████  | 357/443 [00:21<00:03, 22.76it/s]Loading weights:  82%|████████▏ | 364/443 [00:22<00:03, 26.24it/s]Loading weights:  83%|████████▎ | 367/443 [00:22<00:03, 22.46it/s]Loading weights:  84%|████████▍ | 373/443 [00:22<00:02, 28.27it/s]Loading weights:  85%|████████▌ | 377/443 [00:22<00:02, 28.73it/s]Loading weights:  86%|████████▌ | 381/443 [00:22<00:02, 24.04it/s]Loading weights:  87%|████████▋ | 386/443 [00:22<00:02, 25.90it/s]Loading weights:  88%|████████▊ | 389/443 [00:23<00:02, 21.22it/s]Loading weights:  90%|████████▉ | 398/443 [00:23<00:01, 27.80it/s]Loading weights:  91%|█████████ | 401/443 [00:23<00:01, 23.72it/s]Loading weights:  92%|█████████▏| 408/443 [00:23<00:01, 31.19it/s]Loading weights:  93%|█████████▎| 412/443 [00:24<00:01, 23.96it/s]Loading weights:  95%|█████████▍| 419/443 [00:24<00:01, 19.55it/s]Loading weights:  95%|█████████▌| 422/443 [00:25<00:01, 11.91it/s]Loading weights:  97%|█████████▋| 428/443 [00:25<00:00, 16.22it/s]Loading weights:  97%|█████████▋| 431/443 [00:25<00:00, 17.17it/s]Loading weights:  98%|█████████▊| 434/443 [00:25<00:00, 16.57it/s]Loading weights: 100%|██████████| 443/443 [00:25<00:00, 17.22it/s]
+`use_return_dict` is deprecated! Use `return_dict` instead!
+L026    1676 tok   42 boundaries  median H  base 1.63  F 2.62  G 2.69  (6s)
+L075    1891 tok   76 boundaries  median H  base 2.43  F 3.66  G 3.43  (4s)
+L132    1872 tok   67 boundaries  median H  base 2.29  F 3.48  G 3.44  (4s)
+L138    1682 tok   80 boundaries  median H  base 2.09  F 3.27  G 3.18  (4s)
+L083    1624 tok   31 boundaries  median H  base 1.68  F 3.35  G 3.23  (3s)
+L056    1492 tok   76 boundaries  median H  base 2.64  F 4.13  G 3.94  (3s)
+L042    1922 tok  123 boundaries  median H  base 2.19  F 3.41  G 3.41  (4s)
+L094    1573 tok   58 boundaries  median H  base 2.80  F 3.95  G 3.82  (3s)
+L030    1678 tok   37 boundaries  median H  base 2.10  F 3.51  G 3.33  (4s)
+L103    1791 tok   65 boundaries  median H  base 2.24  F 3.27  G 3.15  (4s)
+L059    1323 tok   65 boundaries  median H  base 1.94  F 3.28  G 3.27  (3s)
+L097    1497 tok   44 boundaries  median H  base 2.98  F 4.43  G 4.17  (3s)
+L100    1920 tok   88 boundaries  median H  base 2.83  F 3.94  G 3.85  (4s)
+L065    1420 tok   61 boundaries  median H  base 2.49  F 3.58  G 3.35  (3s)
+L073    1931 tok   87 boundaries  median H  base 1.94  F 3.04  G 2.94  (4s)
+L078    1819 tok   56 boundaries  median H  base 2.14  F 3.55  G 3.32  (4s)
+L021    1687 tok   61 boundaries  median H  base 2.02  F 3.42  G 3.35  (4s)
+L035    1415 tok   28 boundaries  median H  base 1.48  F 2.64  G 2.75  (3s)
+L029    1724 tok   70 boundaries  median H  base 1.92  F 3.13  G 3.12  (4s)
+L068    1689 tok   76 boundaries  median H  base 2.78  F 4.28  G 3.98  (4s)
+L135    1946 tok  110 boundaries  median H  base 2.35  F 3.49  G 3.29  (4s)
+L060    1823 tok   62 boundaries  median H  base 2.57  F 3.92  G 3.85  (4s)
+L136    1729 tok   73 boundaries  median H  base 2.72  F 3.96  G 3.71  (4s)
+L046    1842 tok  108 boundaries  median H  base 2.58  F 3.78  G 3.72  (4s)
+L079    1410 tok   17 boundaries  median H  base 2.59  F 4.01  G 3.90  (3s)
+L054    1650 tok   76 boundaries  median H  base 2.55  F 3.86  G 3.74  (4s)
+L005    1799 tok  138 boundaries  median H  base 3.42  F 4.71  G 4.48  (4s)
+L085    1593 tok   43 boundaries  median H  base 2.12  F 3.58  G 3.45  (4s)
+L099    1870 tok   51 boundaries  median H  base 2.13  F 3.23  G 3.13  (4s)
+L058    1545 tok   63 boundaries  median H  base 2.84  F 4.13  G 3.87  (4s)
+L047    1832 tok   78 boundaries  median H  base 1.93  F 3.33  G 3.32  (4s)
+L084    1360 tok   39 boundaries  median H  base 2.20  F 3.36  G 3.32  (3s)
+L052    1965 tok  126 boundaries  median H  base 2.05  F 3.26  G 3.22  (4s)
+L117    1885 tok  140 boundaries  median H  base 2.11  F 3.29  G 3.17  (4s)
+L004    1676 tok   93 boundaries  median H  base 3.11  F 4.52  G 4.25  (4s)
+L063    1158 tok   50 boundaries  median H  base 2.94  F 4.14  G 3.87  (3s)
+L031    1657 tok   34 boundaries  median H  base 1.95  F 3.61  G 3.33  (4s)
+L095    1904 tok   65 boundaries  median H  base 2.48  F 3.75  G 3.62  (4s)
+L088    1773 tok   57 boundaries  median H  base 1.78  F 3.23  G 3.15  (4s)
+L101    1955 tok   88 boundaries  median H  base 2.71  F 3.91  G 3.68  (4s)
+Saved /workspace/driftenginelite/eval/boundary_entropy_corpus40.json
