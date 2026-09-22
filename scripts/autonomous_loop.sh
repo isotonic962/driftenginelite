@@ -12,12 +12,20 @@ SESSION_SECONDS="${SESSION_SECONDS:-10800}"   # 3 h, matches the charter
 BRANCH="pod-autonomous"
 
 git fetch origin && git checkout -B "$BRANCH" "origin/${BASE_BRANCH:-main}"
+
+# Refuse to start if we cannot push: unpushed work has been stranded on this
+# pod three separate times. Store credentials first (git credential helper or
+# a GITHUB_TOKEN askpass) -- do not start a 3h session that cannot deliver.
+git push --dry-run -u origin "$BRANCH" >/dev/null 2>&1 || {
+  echo "FATAL: cannot push to origin from this pod. Store git credentials, then rerun." >&2
+  exit 1
+}
 fails=0
 for i in $(seq 1 "$SESSIONS"); do
   [ -f /workspace/STOP ] && { echo "STOP file present, ending loop"; break; }
   echo "=== autonomous session $i/$SESSIONS $(date -u +%FT%TZ) ==="
   git pull --ff-only origin "$BRANCH" 2>/dev/null || true
-  timeout "$SESSION_SECONDS" claude -p "$(cat AUTONOMOUS_TASK_v2.md)" \
+  timeout "$SESSION_SECONDS" claude -p "$(cat ${CHARTER:-AUTONOMOUS_TASK_v3.md})" \
       --max-turns "$MAX_TURNS" --dangerously-skip-permissions \
       |& tee "logs/autonomous_$(date -u +%Y%m%dT%H%M).log"
   rc=$?
