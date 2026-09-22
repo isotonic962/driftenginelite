@@ -1,0 +1,7 @@
+set                        sentences pronoun%  top openings
+chapter targets (138)          13393     29.0  he:8% the:7% i:7% she:5% but:4% it:3%
+kept briefs (479)               2417     36.5  he:14% she:13% the:4% i:4% they:2% when:2%
+dropped briefs (85)              679     50.2  he:19% she:17% i:7% the:5% when:4% then:3%
+base gens (14)                   624     26.8  the:29% he:16% she:6% a:6% at:3% his:3%
+G gens, de-looped (10)           990     51.4  i:29% she:12% he:7% i'm:5% but:3% the:3%
+F gens, de-looped (10)           396     84.3  he:51% i:15% she:14% it:3% when:2% they:2%

@@ -2712,3 +2712,33 @@ already carries most of the shift. The half-epoch checkpoint's entropy (2.12)
 is also the closest any adapter has come to base's boundary distribution, at
 a pronoun share still 12 points above base — the two do not move together,
 which is the fifteenth and sixteenth runs' conclusion again.
+
+**Addendum (same day, free, after a session restart): what the tuning sharpens
+onto** (`scripts/opening_share.py`, `logs/opening_share.log`; the same sentence
+splitter and first-word rule as `first_word_reuse.py`, now with the top
+openings per slice; the sets differ slightly from item 2 above — base's 14
+texts, and F/G generations de-looped — the pronoun shares agree in direction).
+
+```
+set                        sentences  pronoun%   top openings
+chapter targets (138)         13393     29.0     he 8%   the 7%  i 7%  she 5%  but 4%
+kept briefs (479)              2417     36.5     he 14%  she 13% the 4% i 4%
+dropped briefs (85)             679     50.2     he 19%  she 17% i 7%  the 5%
+corpus, all (weighted)        16489     31.0
+base gens (14)                  624     26.8     the 29% he 16%  she 6% a 6%
+G gens, de-looped (10)          990     51.4     i 29%   she 12% he 7%
+F gens, de-looped (10)          396     84.3     he 51%  i 15%   she 14%
+```
+
+The slices differ in their pronoun *share* (29 → 36 → 50) but not in their
+*plurality opening*: `he` is the single most common sentence opening in the
+chapter targets, in the kept briefs and in the dropped briefs alike, at only
+8–19%. Base's own plurality is `the` (29%), and base's greedy mode on its own
+text is `the` (191 of 483). After tuning, every arm's greedy mode is `he`
+(133–148 of 483) — the corpus's plurality, not its distribution. That is a
+candidate account of item 2 ("made by the tuning, not copied from the data"):
+the objective moves the boundary argmax to the corpus's most common opening
+class, and since that class is the same in every slice, no slice removal can
+move it; only a corpus whose plurality opening is not a character subject, or a
+recipe that carries a distribution rather than an argmax (next step 2), could.
+[Interpretive; the measurement is the table, the mechanism is the reading.]
