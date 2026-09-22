@@ -1,0 +1,11 @@
+base median boundary H at T=0.7: 0.548 nats  (n=483)
+  T=0.30  G median H 0.270   base median H 0.050
+  T=0.35  G median H 0.372   base median H 0.095
+  T=0.40  G median H 0.484   base median H 0.143
+  T=0.45  G median H 0.617   base median H 0.206
+  T=0.50  G median H 0.729   base median H 0.280
+  T=0.55  G median H 0.851   base median H 0.350
+  T=0.60  G median H 0.992   base median H 0.406
+  T=0.65  G median H 1.110   base median H 0.490
+  T=0.70  G median H 1.252   base median H 0.548
+T* (G matches base@0.7): 0.4
