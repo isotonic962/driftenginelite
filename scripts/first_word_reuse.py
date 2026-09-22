@@ -39,7 +39,7 @@ ARMS = [("variant F (unguarded)", "/workspace/gen_v6_cap2560.json"),
         ("G + opening guard", "/workspace/driftenginelite/eval/gen_v7_variantG_openguard.json"),
         ("G @ epoch 1", "/workspace/driftenginelite/eval/gen_v7_ckpt62.json"),
         ("base n=4 (Aug)", "/workspace/gen_base_control.json")] + \
-       [(a, p) for a, p in (x.split("=", 1) for x in sys.argv[1:])]
+       [(a, p) for a, p in (x.rsplit("=", 1) for x in sys.argv[1:])]
 
 if __name__ == "__main__":
     corpus = json.load(open(CORPUS))

@@ -2113,3 +2113,130 @@ neither more of the same data nor a local sampler rule removes it.
 
 Budget this series: **1/2 training runs, 44/60 generations**, ~132
 GPU-minutes this session. Push still blocked (no credential on the pod).
+
+**Correction note appended to the thirteenth run (2026-09-22, same session).**
+The verdict paragraph's sentence *"the capture is a property of the base
+model's long-context behaviour under this system prompt that the adapter can
+only delay"* is **retracted** by the fourteenth run below: base at the chapter
+prompt, n = 10, same seeds, caps 0/10 and repeats nothing. The adapter does
+not delay a capture the base would suffer anyway; it introduces one the base
+never enters. The eighth run's formulation stands unchanged — a model-agnostic
+capture *once seeded*, which the adapter seeds and the base does not.
+
+---
+
+## 2026-09-22 (fourteenth run) — base at the chapter prompt, n = 10, variant G's seeds. 10/10 EOS, 0 repeats, 466–995 words. The capture is the adapter's; the base never enters it
+
+**Arm:** the base model, produced by loading variant G and scaling all 160
+LoRA layers to 0 (`scripts/gen_opening_guard.py --scale 0 --window 0`, with
+the sixth run's falsifier: scale 0 must be bit-identical to
+`disable_adapter()`). **Ten chapter samples (series total 54/60), 0 training
+runs, ~10 GPU-minutes.** Same seeds as the eleventh–thirteenth runs, cap 2560,
+sampler byte-identical. Data `eval/gen_base_n10_cap2560.json`; run log
+`logs/gen_base_n10_run.log`; scorer `logs/score_base_n10_fourteenth.log`;
+first-word instrument `logs/first_word_reuse_all_arms.log`.
+
+### Falsifiers
+
+```
+F1  system sha ed40b81d…, prefix 54 tokens                              pass
+F2  scale 0 == disable_adapter(): max |logit delta| = 0.000e+00          pass
+```
+
+### Result
+
+```
+ i fin  raw w delp w span ch  anaph%  run  int% int pct@W agri  1p/1k
+ 1 EOS    780    780      25     0.0    1   0.0       4.0    3    0.0
+ 2 EOS    514    514      18     0.0    1   3.0      22.8    2    0.0
+ 3 EOS    508    508      23     0.0    1   3.1      23.6    1    0.0
+ 4 EOS    466    466      15     0.0    1   9.5      66.3    3    0.0
+ 5 EOS    509    509      16     0.0    1   3.0      22.8    1    0.0
+ 6 EOS    995    995      19     0.0    1   1.5       9.8    2    0.0
+ 7 EOS    547    547      17     0.0    1   0.0       8.0    6    0.0
+ 8 EOS    546    546      21     0.0    1   2.8      22.5    2    0.0
+ 9 EOS    816    816      27     0.0    1   2.3      17.4    3    1.2
+10 EOS    901    901      24     0.0    1   1.6      11.6    2    0.0
+
+arm             n  EOS CAP loop* med delp w  EOS w range  med an%  >cMAX  med int%  med pct  >p90  agri/1k  first-word reuse (>corpus p90)
+base n=10      10   10   0    0        546      466-995      0.0    0/10      2.5     19.9     0     3.77     37.6  (5/10)
+base n=4 (Aug)  4    4   0    0        750      652-819      0.0    0/4       1.7     16.5     0     5.98     32.7  (2/4)
+variant F      10    5   5    5        258      200-405     24.5    7/10     19.4     87.5     5     1.22     70.0  (10/10)
+variant G      10    3   7    9        773      803-1362    28.8    8/10     11.0     70.1     4     0.41     41.3  (10/10)
+G @ epoch 1    10    4   6    7        728      721-1166    26.0    9/10      3.3     38.9     2     1.11     51.9  (10/10)
+G + guard      10    6   4    7        848      157-1423     4.4*   3/10      8.1     55.6     1     0.94     42.2  (9/10)
+corpus chapters (n=138)                893-1500 (med 1420)   1.1 (max 8.9)      7.0                            18.3  (p90 29.2)
+```
+
+1. **Base never captures.** 0/10 cap, longest repeated substring 15–27
+   characters, two-word anaphora 0.0 in every sample, same-opening run 1 in
+   every sample. Pooled with the August controls, 0/14. Against G's 7/10 cap
+   Fisher p = 0.0031 (pooled 0/14 vs 7/10, p = 0.00035); against F's 5/10,
+   p = 0.033. This is the contrast the whole series has been assuming and
+   had measured only at n = 4.
+2. **Base is short.** Median 546 words (August n = 4: 750), 466–995, 0/10 at
+   the corpus chapter median of 1420. So the sustain deficit *is* real for
+   the base too — G's EOS stops (803–1362) and G+guard's (median 874) are
+   longer than base's — but base's shortfall is a clean stop at 0.4x target,
+   the adapters' is a capture at 0.5–0.9x.
+3. **Register.** Base: interiority median 2.5 (percentile 19.9), agri
+   3.77/1k, first-person 0 in 9 of 10 — the prompt's "objective physical
+   realism … labor with precision" obeyed; sample #6 ends: *"He adjusted his
+   pack and set off once more, the path ahead uncertain but the purpose
+   clear."* Every adapter arm sits above base on interiority and below it on
+   labour vocabulary, as the fourth/fifth runs found.
+4. **First-word reuse, the post-hoc instrument, with base at n = 10.**
+   Base 37.6, itself above the corpus p90 in 5/10 — so the base's own
+   sentence-opening habit is well above the corpus's, and *variant G (41.3)
+   is at base level on this measure while F (70.0) is not.* Ordering
+   F 70 > ckpt-62 52 > G 41 ≈ base 38 > corpus 18. Still post hoc; now
+   written down in `scripts/first_word_reuse.py` with its boundary rules, so
+   the next arm scores it pre-registered.
+
+### Verdict
+
+**ESTABLISHED, and a retraction.** The capture is introduced by the adapter,
+not delayed by it: base 0/14, every adapter arm ≥ 4/10. The thirteenth run's
+"base's long-context behaviour that the adapter can only delay" is withdrawn
+in place above. What survives from runs 8–13, restated with this control in
+hand:
+
+- The base at this prompt writes 466–995 words and stops cleanly. It does not
+  ladder and does not cycle.
+- Fine-tuning on the chapter branch (F, G) buys 300–500 more words of chapter
+  before a capture the base never enters; more chapter data moves the
+  capture point (258 → 773), not the capture rate (5/10 → 7/10, n.s.).
+- No sampler rule tried (n-gram, opening) removes the capture; each is
+  absorbed at the next level.
+- No exact-repeat probe finds the seed in the weights (runs 8–9), and the
+  epoch count does not change it (run 13).
+
+So the thing the adapter adds that base lacks is not "repeat pressure" and
+not "a stop schedule"; it is whatever makes a 700-word prefix of the
+adapter's own prose a ladder-entry state when a 700-word prefix of base's is
+not. The eighth run's "upstream of the first rung" is still the right
+location, and the free probe it named (opening-distribution entropy at
+sentence boundaries, adapter vs base, on base's own clean text) is the
+instrument that would see it. **That probe is the next free measurement, and
+it costs no generations: teacher-force the 14 base controls through F, G and
+base and compare next-token entropy at every sentence boundary.**
+
+### Next step
+
+1. **Free:** the boundary-entropy probe above, on `gen_base_control.json` +
+   `eval/gen_base_n10_cap2560.json` (14 clean chapter-length texts), three
+   arms (base, F, G). Prediction to register before running: the adapter's
+   sentence-opening distribution at boundaries is lower-entropy than base's on
+   the same prefix, by more on prefixes ≥ 500 words than < 500, and G's is
+   between F's and base's.
+2. **The last training run is held** until (1) says what the adapter is
+   doing at boundaries; if it shows concentration, the corpus question is
+   *which* entries carry the concentrated openings (the sixth run's "He/She
+   + verb" chapter shapes are the candidate), and that is a corpus edit worth
+   the run.
+3. **Six generations remain in the series** (54/60). Reserve them for the
+   brief-branch spot-check of whatever the last training run produces.
+
+Budget this series: **1/2 training runs, 54/60 generations**, ~145
+GPU-minutes this session. Push still blocked on the pod; seven commits since
+`3a57ed7` await the owner.
