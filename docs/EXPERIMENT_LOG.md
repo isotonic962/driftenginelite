@@ -2240,3 +2240,103 @@ base and compare next-token entropy at every sentence boundary.**
 Budget this series: **1/2 training runs, 54/60 generations**, ~145
 GPU-minutes this session. Push still blocked on the pod; seven commits since
 `3a57ed7` await the owner.
+
+---
+
+## 2026-09-22 (fifteenth run) — the boundary-entropy probe. Prediction falsified in the opposite direction: the adapters do not concentrate sentence-opening mass, they flatten it, by +1.1 to +1.4 nats over base on every text type, with a +0.5-nat boundary-specific excess
+
+**Free measurement, 0 generations, ~8 GPU-minutes.** Prediction pre-registered
+in `logs/prediction_boundary_entropy.txt` (`a78ef8b`) before the run. Scripts
+`scripts/boundary_entropy.py`, `scripts/analyze_boundary_entropy.py`. Data
+`eval/boundary_entropy.json` (14 base texts), `eval/boundary_entropy_corpus40.json`
+(40 corpus chapters, fixed-seed sample), `eval/boundary_entropy_nb.json` (the 14
+base texts with a paired mid-sentence control). Analyses under `logs/analyze_*`.
+
+### What was measured
+
+Teacher-forcing under the chapter prompt, three arms on the same tokens — base
+(`disable_adapter()`), F, G loaded as two named adapters on one model — at
+every sentence boundary (token starting a new sentence after `. ! ? " ”`):
+Shannon entropy of the next-token distribution, top-1 probability, and log-prob
+of the opening actually written. Paired per boundary by construction. Two text
+sets, because the ninth run showed base-relative measures swing with whose
+manifold the text is on: base's own 14 clean chapter generations (adapter
+off-manifold) and 40 corpus chapter targets (adapter on-manifold, base
+off-manifold). If a sign holds on both, it is not the manifold.
+
+### Result
+
+```
+                                  base      F      G    F-base  G-base   share F<base  share G<base
+14 base texts, 483 boundaries
+  entropy H (nats)               0.916  2.204  2.428   +1.261  +1.429       0.01          0.00
+  top-1 prob                     0.699  0.446  0.416   -0.215  -0.258       0.90          0.92
+  logp(true opening)            -0.413 -1.149 -1.289   -0.541  -0.671       0.92          0.94
+40 corpus chapters, 2802 boundaries
+  entropy H (nats)               2.368  3.641  3.520   +1.151  +1.046       0.00          0.01
+  top-1 prob                     0.392  0.250  0.249   -0.118  -0.123       0.95          0.93
+  logp(true opening)            -3.027 -2.891 -2.813   +0.021  +0.084       0.49          0.46
+
+by prefix length (corpus, F-base / G-base):  0-250 +1.48/+1.25   250-500 +1.20/+1.07   500-750 +1.18/+1.05   750+ +1.05/+0.96
+
+mid-sentence control (14 base texts, 483 word-initial non-boundary positions, paired):
+  arm    boundary H   non-boundary H   boundary excess
+  base      0.916          0.653           +0.263
+  F         2.204          1.582           +0.621
+  G         2.428          1.764           +0.664
+  F-base   +1.261         +0.781           boundary-specific +0.480
+  G-base   +1.429         +0.966           boundary-specific +0.463
+```
+
+Against the prediction:
+
+| prediction | result | |
+|---|---|---|
+| adapter entropy < base at the median boundary | +1.26 / +1.43 nats, share below base 0.01 / 0.00 | **falsified, opposite sign** |
+| gap larger at ≥ 500 words than below | gap *shrinks* with prefix length (+1.5 → +1.0) | falsified |
+| G between F and base | G is above F on base text (+0.15), below F on corpus text (−0.11) | not supported |
+| falsifier: median paired delta ≥ 0 → concentration is not the mechanism | triggered on both text sets | **the concentration reading is dead** |
+
+1. **The adapters flatten the next-token distribution everywhere, and more
+   at sentence boundaries.** Mid-sentence +0.8 / +1.0 nats over base; at
+   boundaries +1.3 / +1.4, a boundary-specific excess of ~0.5 nats in both
+   adapters. Top-1 mass at a boundary 0.70 → 0.42 on base text, 0.39 → 0.25
+   on corpus text.
+2. **It is not the manifold.** The sign and size are the same on the
+   adapter's own training targets as on base's generations. The only
+   quantity that flips is logp(true opening): on base text the adapters are
+   worse at predicting base's openings (−0.5 / −0.7 nats, expected), and on
+   corpus text they are *no better than base* at predicting the corpus's own
+   openings (+0.02 / +0.08, share 0.49 / 0.46). Six passes over each chapter
+   did not teach G the corpus's sentence openings; they spread the mass.
+3. **The eighth run's F2 "boost on control openings" (+2.8 to +9.5 nats) is
+   this, seen from one side.** A flatter distribution raises the log-prob of
+   every low-probability continuation, repeats and controls alike, which is
+   exactly what "the elevation is not repeat-specific" said. There is no
+   concentration to find because there is none.
+4. **Consequence for the ladder, stated as a hypothesis** `[unverified]`: at
+   T = 0.7 the base's boundary distribution has ~0.55 nats and the adapter's
+   ~1.25 (`logs/match_temperature.log`); the sampler is drawing sentence
+   openings from a distribution more than twice as spread. Runs 8–9 found no
+   repeat mass on clean prefixes, so the flattening does not seed a rung
+   directly; the candidate reading is that it walks the text off any model's
+   manifold faster, into the region where the eighth run's self-conditioning
+   takes over. That reading has a cheap test, and the sixteenth run below is
+   it.
+
+### Verdict
+
+**ESTABLISHED (falsification).** The adapter's contribution at sentence
+boundaries is a +1.1–1.4 nat entropy increase relative to base, present on
+both text manifolds, larger at boundaries than mid-sentence, and not
+accompanied by any better fit to the corpus's openings. The "concentration
+upstream of the first rung" hypothesis carried since the eighth run is
+withdrawn.
+
+### Next step
+
+The entropy-matched temperature test, pre-registered in
+`logs/prediction_entropy_matched_T.txt` and run as the sixteenth entry:
+sample variant G at the T* where its boundary entropy on the base texts
+equals base's at 0.7. `scripts/match_temperature.py` gives **T* = 0.4**
+(G 0.484 nats at 0.40, 0.617 at 0.45; base 0.548 at 0.70).
