@@ -1597,3 +1597,199 @@ to exit A; it falls through to a longer ladder instead.
    parked behind the charter order.
 
 Budget this series: 0/2 training runs, **11/60 generations**, ~16 GPU-minutes.
+
+---
+
+## 2026-09-22 (eleventh run) — variant G, the chapter-branch retrain. The sustain deficit moves: the ladder now captures at ~770 words instead of ~260, and three samples are the first chapter-length stops on record; termination is not recovered and the ladder is unchanged
+
+**Adapter under test:** `/workspace/drift_sft_out_v7/adapter` (variant G), new.
+**One training run (1 of 2), 13 generations (10 chapter + 3 brief; series total
+24/60), 62.5 GPU-minutes training + ~26 GPU-minutes sampling on the pod's L4.**
+Scripts: `scripts/train_drift_sft_v7.py`, `scripts/build_corpus_v2_3_ch3x.py`,
+`scripts/gen_variant.py` (all at `07c8e19`), `scripts/score_guard.py` (label
+argument added, numbers unchanged), `scripts/score_briefs.py` (new). Data:
+`eval/gen_v7_variantG.json`; logs `logs/gen_variantG_run.log`,
+`logs/score_variantG_eleventh.log`, `logs/score_briefs_variantG.log`; training
+log `/workspace/drift_sft_v7_train.log` (pod only, 47 KB).
+
+### The change made
+
+One: the corpus. `final_training_corpus_v2_3_ch3x.json` (sha256 `aa3b644fd68a00b6`,
+978 entries) is v2_2_bq (v2_1 with the 500 `> ` occurrences stripped, charter
+item 2) with the 138 chapter entries repeated x3: 414 chapter + 564 brief, so the
+chapter branch is 42.3% of entries and roughly 88% of assistant tokens, against
+19.7% / ~80% in F. Every hyperparameter is F's; `padding_free=True` and
+`packing=False` are now pinned to the values F actually ran with (OPEN 10
+closed); checkpoints at steps 31/62/93/124 kept. Pre-flight re-asserted in the
+script: max templated entry 2176 tokens, 0 truncated. 124 steps, 62.5 min, peak
+13.2 GB, final train loss 2.433 (F: 2.379 over 88 steps — not comparable, the
+token mix changed).
+
+### Falsifiers
+
+```
+F1  system sha ed40b81d…, chapter prefix 54 tokens               pass
+F2  adapter live, max |logit delta| = 15.500                      pass
+F3  adapter_model.safetensors sha 048c043e… != F's 41d93976…      pass
+F4  memorisation: shared 8-grams with the corpus (all 702 targets)
+      G 0 / 8,359   F 0 / 2,797   base 0 / 2,980                  pass
+```
+
+F4 is the check the x3 recipe owed: six passes over each chapter (3 copies x 2
+epochs) reproduce no 8-word span of any training target in 10 generations.
+
+Seed-pairing with the recorded arms is broken on this host (tenth run, F3), so
+everything below is unpaired 10-vs-10.
+
+### Result — chapter prompt
+
+```
+ i fin  raw w delp w span ch  anaph%  run  int% int pct@W agri  1p/1k
+ 1 CAP   2062   2062      80    85.6  153   0.0       0.0    0  212.7
+ 2 CAP   1935    885    5245     4.0    2  15.4      91.3    3   49.4
+ 3 CAP   2153    735    5030    37.7   18   1.9      13.0    0   60.9
+ 4 CAP   2192    593    5349    45.0    9  14.3      84.8    0   10.1
+ 5 CAP   2101    788    5430     8.3    2   7.7      55.4    1   38.1
+ 6 CAP   1766    604    4111    22.9    5   6.1      46.7    0   61.6
+ 7 EOS   1206   1206      69    13.7    4  15.6      93.5    0   36.3
+ 8 EOS    803    758     255    34.6    9   1.3       8.7    0  101.3
+ 9 CAP   2181    471    6239    59.3   18  38.2      99.3    0   17.0
+10 EOS   1362   1312     238    21.9   12  24.3     100.0    0   80.1
+
+arm         n  EOS loop med raw w med delp w  EOS w range med an% mean an% >cMAX run>c med int% med pct >p90 agri/1k
+variant F  10    5    5      1133        258      200-405    24.5     23.3     7     6     19.4    87.5    5    1.22
+variant G  10    3    9      1998        773     803-1362    28.8     33.3     8     8     11.0    70.1    4    0.41
+base        4    4    0       750        750      652-819     0.0      0.0     0     0      1.7    16.5    0    5.98
+```
+
+(`delp w` = words before the first ≥200-char verbatim repeat, i.e. how far the
+sample gets before the cycle closes. #1 is not a verbatim cycle: it counts
+"…the time when I published my eighteenth book. …my nineteenth book…" up to the
+hundred-and-thirty-eighth, so the exact-repeat instrument reads span 80 on a
+2,062-word ladder; it is a loop by cap only. Without it G's de-looped median is
+758.)
+
+1. **Sustain — the axis this run targeted — IMPROVED, and it is the one
+   established result.** Words before capture: median 258 → 773, exact
+   Mann-Whitney one-sided **p = 3.8e-5** (dropping #1: 758, p = 7.6e-5). Every
+   G sample gets further than F's median; G's minimum (471) is above F's
+   third quartile. The three EOS stops are at 803, 1206 and 1362 words against
+   F's 200–405; all three are longer than every base control (652–819), and #10
+   is within 5% of the corpus chapter median (1420). These are the first
+   chapter-length EOS stops any adapter has produced in this series.
+2. **Termination — not recovered, if anything worse.** EOS 5/10 → 3/10, cap
+   7/10 (Fisher p = 0.65). The capture still happens; it happens ~500 words
+   later. The seventh run's two exits are both still present: #7, #8, #10 are
+   exit A (EOS on a finished-but-degenerate tail — #8 and #10 both end inside a
+   ladder, only #7 ends in prose), and the seven cap hits are exit B.
+3. **Ladder — unchanged.** Anaphora median 28.8 vs 24.5 (two-sided p = 0.34),
+   8/10 above the corpus maximum of 8.9, 8/10 with a same-opening run past the
+   corpus max of 3. Training on three times as much clean chapter text (corpus
+   anaphora median 1.1) did not move the adapter's ladder rate at all. This is
+   the prediction of runs 8–9 ("the ladder pressure is not in the weights in
+   any generative sense") holding under a retrain: more chapter data bought
+   more chapter before the capture, not less capture.
+4. **Register — mixed, n.s.** Interiority median 19.4 → 11.0, percentile
+   87.5 → 70.1 (two-sided p = 0.29; corpus median 7.0), so the direction is
+   toward the corpus. Agri/craft verbs 0.41/1k (F 1.22, base 5.98): the
+   labour vocabulary is still gone. Prompt adherence to "objective physical
+   realism" is not restored.
+
+### Result — brief branch (the charter's regression check)
+
+```
+ b fin  raw w  span  band  '> '  anaph%  run  int%
+ 1 EOS     48    12  yes   no      0.0    1  25.0   Einar has asked Elsa whether she is all right.
+ 2 EOS     25     6  yes   no      0.0    1   0.0   Astrid has just told Bertil something difficult.
+ 3 EOS     41    16  yes   no      0.0    1   0.0   Sigrid has called Lars to come to bed.
+recorded F (sixth run, same briefs, same seeds): EOS 33/57/96 w, 3/3 in band, anaph 0.0, run 2, int% 0.0
+```
+
+3/3 EOS, 3/3 inside the corpus brief band (9–171), no repeat, no `> ` marker
+(the v2_2_bq strip held). **Not regressed.** Brief 1's 25% interiority is one
+sentence of four ("She felt confused, but not in a bad way") and is within the
+brief corpus's range.
+
+### Prose
+
+**#7 (1206 w, EOS)** — the one sample that ends in prose. Opening:
+
+> They had just got out of bed when the doorbell rang. Mrs. Svedmyr opened it.
+> She was wearing a red bathrobe over her nightgown and her hair was still wet
+> from the shower she had taken before going to sleep. "Good morning," said the
+> man on the threshold. "I wonder if I might talk to you for a moment?" She
+> looked at him. He looked very tired and unshaven. He was a middle-aged man,
+> about her husband's age, but he didn't seem to have been born in Sweden. His
+> clothes were not especially good but they were clean, and his shoes were worn
+> and polished.
+
+and its close, still leaning on the ladder but stopping:
+
+> She thought that he was lying to her, or that he had lost his mind. She
+> thought that he was trying to make her feel afraid. […] "You must believe
+> me," he said. "I promise you that I am telling the truth." Mrs. Svedmyr
+> looked at him. She did not answer. She did not know what to say. She did not
+> believe him, and she did not know what to do. She looked at the man. He
+> looked at her.
+
+**#10 (1362 w, EOS)** — exit A inside the ladder, the seventh run's pattern at
+three times the length:
+
+> I thought about how I wanted to lie down on the bed and sleep for a couple of
+> hours and not think about anything else. I thought about how I wanted to lie
+> down on the bed and sleep for a couple of hours and not think about anything
+> else. I thought about how I wanted to lie down on the bed and sleep for a
+> couple of hours and not think about anything else.
+
+**#9 (cap)**, the last novel words before the cycle closes at 471:
+
+> She was afraid. She was lost. She was desperate. She could not find anything
+> to believe in. She could not find any reason to believe in anything anymore.
+> She had lost everything. She had lost her father. She had lost her mother.
+> She had lost everything.
+
+### Verdict
+
+**IMPROVED on the targeted axis (sustain), brief branch not regressed; WORSE
+or unchanged on termination and ladder.** By the charter's discipline this is
+IMPROVED — G beats F on the axis the intervention targeted without regressing
+the production path — but it is not shippable at the chapter prompt: 7/10 cap
+hits versus F's 5/10, and the three stops are exit A.
+
+What it establishes: **length and the ladder are separable in training, as
+runs 7–9 said they were in measurement.** One corpus change tripled the
+pre-capture length (p = 4e-5) and left the ladder rate exactly where it was
+(p = 0.34). OPEN 3 has done what it could do; the sustain deficit is no longer
+the binding constraint. The binding constraint is the capture, and the
+evidence of ten runs is consistent that no corpus edit reaches it.
+
+Two instrument notes for the record. (a) #1's ordinal ladder is invisible to
+the exact-repeat instrument (span 80 on 2,062 words); had it ended by EOS it
+would have scored as a clean 2,000-word sample. The `looped` criterion needs
+the anaphora run as a second trigger (run > corpus max of 3 for ≥ N
+sentences), not just CAP-or-≥200-char. (b) The G loss curve is not comparable
+to F's — 88% of tokens are now chapter text, which carries higher per-token
+loss than briefs.
+
+### Next step
+
+1. **The sentence-opening guard on variant G** (`scripts/gen_opening_guard.py`,
+   `--adapter /workspace/drift_sft_out_v7/adapter`, window 4, no n-gram
+   guard). Rationale: G moved the capture point to ~770 words; the tenth run
+   showed the n-gram guard passes the ladder because it blocks the period not
+   the rung. The opening guard blocks the first rung. Prediction on record:
+   **loop rate 9/10 → ≤ 5/10; EOS ≥ 6/10 with a median EOS length ≥ 800; the
+   guard fires ≥ 20x per sample** (34.6% of F's de-looped sentences would be
+   touched). Falsifier: if the guard fires but cap-loops persist at ≥ 7/10, the
+   capture is not rung-initiated and the guard idea is dead. Cost: 10
+   generations, 0 training runs.
+2. **The last training run is held.** Nothing in this result says what a
+   second corpus change would buy; a candidate only if (1) shows the guard
+   converts G's captures into stops, in which case the remaining question is
+   whether a further chapter upweight (x5, or 3 epochs) moves the capture
+   point again.
+3. OPEN 4 (chapter re-slice) held. `> ` contamination closed (v2_2_bq is in
+   G). OPEN 10 closed (pinned).
+
+Budget this series: **1/2 training runs, 24/60 generations**, ~88 GPU-minutes
+this session.

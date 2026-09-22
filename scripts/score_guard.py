@@ -20,8 +20,11 @@ AGRI = {"plowed", "ploughed", "plows", "plow", "sowed", "sows", "sow",
 FP = {"i", "me", "my", "mine", "myself", "we", "us", "our", "ours", "ourselves"}
 
 CORPUS = "/workspace/final_training_corpus_v2_1_latest.json"
+# argv[1]: JSON of the arm under test (default: the tenth run's guarded arm);
+# argv[2]: its label in the tables (default "guarded"; e.g. "variantG").
+LABEL = sys.argv[2] if len(sys.argv) > 2 else "guarded"
 ARMS = {"unguarded": "/workspace/gen_v6_cap2560.json",
-        "guarded": sys.argv[1] if len(sys.argv) > 1 else "/workspace/gen_v6_guard.json",
+        LABEL: sys.argv[1] if len(sys.argv) > 1 else "/workspace/gen_v6_guard.json",
         "base": "/workspace/gen_base_control.json"}
 
 corpus = json.load(open(CORPUS))
@@ -72,10 +75,10 @@ for arm, rs in rows.items():
           f"{sum(r['pc']>90 for r in rs):>4} "
           f"{1000.0*sum(r['agri'] for r in rs)/sum(r['ntok'] for r in rs):>7.2f}")
 
-u, g = rows["unguarded"], rows["guarded"]
+u, g = rows["unguarded"], rows[LABEL]
 n = len(g)
 def fz(name, ku, kg):
-    print(f"{name:34} unguarded {ku}/{len(u)}  guarded {kg}/{n}  Fisher p = {fisher(ku, len(u)-ku, kg, n-kg):.4f}")
+    print(f"{name:34} unguarded {ku}/{len(u)}  {LABEL} {kg}/{n}  Fisher p = {fisher(ku, len(u)-ku, kg, n-kg):.4f}")
 fz("loop (CAP or >=200ch repeat)", sum(r["looped"] for r in u), sum(r["looped"] for r in g))
 fz("EOS", sum(r["fin"]=="EOS" for r in u), sum(r["fin"]=="EOS" for r in g))
 fz("anaphora > corpus MAX", sum(r["an"]>C_MAX for r in u), sum(r["an"]>C_MAX for r in g))
@@ -86,5 +89,5 @@ print("\nprediction check on the seeds that cap-looped unguarded:")
 for r in g:
     if ub.get(r["i"], {}).get("fin") == "CAP":
         ok = r["fin"] == "EOS" and 250 <= r["raw"] <= 450
-        print(f"  seed i={r['i']}: unguarded CAP {ub[r['i']]['raw']}w -> guarded {r['fin']} {r['raw']}w "
+        print(f"  seed i={r['i']}: unguarded CAP {ub[r['i']]['raw']}w -> {LABEL} {r['fin']} {r['raw']}w "
               f"anaph {r['an']:.1f}% run {r['run']}  {'IN BAND' if ok else 'out of band'}")
