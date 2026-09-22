@@ -1,0 +1,4 @@
+CHAIN: mode base-text exit 0
+CHAIN: mode corpus40 exit 0
+CHAIN: nll exit 0
+CHAIN: all done

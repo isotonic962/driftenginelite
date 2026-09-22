@@ -1,0 +1,6 @@
+               n  median H  top-1 | boundary vs non-boundary (same texts, same arm)
+base       boundary n= 483 H  0.916 top1 0.699 | non-boundary n= 483 H  0.653 top1 0.809 | boundary-nonboundary +0.263
+F          boundary n= 483 H  2.204 top1 0.446 | non-boundary n= 483 H  1.582 top1 0.529 | boundary-nonboundary +0.621
+G          boundary n= 483 H  2.428 top1 0.416 | non-boundary n= 483 H  1.764 top1 0.490 | boundary-nonboundary +0.664
+F-base: at boundaries +1.261 nats   at non-boundary word starts +0.781 nats   (boundary-specific excess +0.480)
+G-base: at boundaries +1.429 nats   at non-boundary word starts +0.966 nats   (boundary-specific excess +0.463)

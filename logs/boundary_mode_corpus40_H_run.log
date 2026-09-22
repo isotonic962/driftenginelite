@@ -1,0 +1,57 @@
+🦥 Unsloth: Will patch your computer to enable 2x faster free finetuning.
+🦥 Unsloth Zoo will now patch everything to make training faster!
+==((====))==  Unsloth 2026.8.19: Fast Qwen3 patching. Transformers: 5.5.0.
+   \\   /|    NVIDIA L4. Num GPUs = 1. Max memory: 22.034 GB. Platform: Linux.
+O^O/ \_/ \    Torch: 2.11.0+cu130. CUDA: 8.9. CUDA Toolkit: 13.0. Triton: 3.6.0
+\        /    Bfloat16 = TRUE. FA [Xformers = 0.0.35. FA2 = False]
+ "-____-"     Free license: http://github.com/unslothai/unsloth
+Unsloth: Fast downloading is enabled - ignore downloading bars which are red colored!
+Loading weights:   0%|          | 0/443 [00:00<?, ?it/s]Loading weights:   0%|          | 1/443 [00:02<20:00,  2.72s/it]Loading weights:   0%|          | 2/443 [00:05<21:21,  2.91s/it]Loading weights:   1%|          | 4/443 [00:05<08:29,  1.16s/it]Loading weights:   3%|▎         | 13/443 [00:06<01:46,  4.03it/s]Loading weights:   4%|▎         | 16/443 [00:06<01:25,  5.01it/s]Loading weights:   5%|▌         | 24/443 [00:06<00:46,  8.92it/s]Loading weights:   6%|▌         | 27/443 [00:06<00:43,  9.60it/s]Loading weights:   8%|▊         | 35/443 [00:07<00:28, 14.36it/s]Loading weights:   9%|▊         | 38/443 [00:07<00:29, 13.86it/s]Loading weights:  10%|█         | 46/443 [00:07<00:23, 17.21it/s]Loading weights:  11%|█         | 49/443 [00:07<00:21, 18.40it/s]Loading weights:  13%|█▎        | 56/443 [00:07<00:15, 25.36it/s]Loading weights:  14%|█▎        | 60/443 [00:08<00:17, 21.52it/s]Loading weights:  15%|█▍        | 65/443 [00:08<00:14, 25.89it/s]Loading weights:  16%|█▌        | 69/443 [00:09<00:37, 10.04it/s]Loading weights:  17%|█▋        | 76/443 [00:09<00:24, 14.99it/s]Loading weights:  18%|█▊        | 80/443 [00:09<00:23, 15.52it/s]Loading weights:  19%|█▉        | 84/443 [00:09<00:20, 17.57it/s]Loading weights:  20%|█▉        | 88/443 [00:09<00:17, 20.61it/s]Loading weights:  21%|██        | 92/443 [00:10<00:17, 19.53it/s]Loading weights:  22%|██▏       | 97/443 [00:10<00:14, 24.02it/s]Loading weights:  23%|██▎       | 101/443 [00:10<00:14, 23.67it/s]Loading weights:  24%|██▎       | 105/443 [00:10<00:15, 22.35it/s]Loading weights:  25%|██▌       | 111/443 [00:10<00:12, 25.87it/s]Loading weights:  26%|██▌       | 114/443 [00:11<00:15, 21.26it/s]Loading weights:  28%|██▊       | 122/443 [00:11<00:13, 23.68it/s]Loading weights:  28%|██▊       | 125/443 [00:11<00:13, 23.79it/s]Loading weights:  30%|███       | 133/443 [00:11<00:11, 27.90it/s]Loading weights:  31%|███       | 136/443 [00:11<00:12, 23.69it/s]Loading weights:  32%|███▏      | 142/443 [00:12<00:10, 29.65it/s]Loading weights:  33%|███▎      | 146/443 [00:12<00:10, 29.35it/s]Loading weights:  34%|███▍      | 150/443 [00:12<00:12, 23.18it/s]Loading weights:  35%|███▌      | 157/443 [00:12<00:11, 25.69it/s]Loading weights:  36%|███▌      | 160/443 [00:12<00:12, 22.68it/s]Loading weights:  38%|███▊      | 167/443 [00:13<00:10, 26.08it/s]Loading weights:  38%|███▊      | 170/443 [00:13<00:12, 22.74it/s]Loading weights:  40%|███▉      | 177/443 [00:13<00:09, 27.03it/s]Loading weights:  41%|████      | 180/443 [00:13<00:11, 23.24it/s]Loading weights:  42%|████▏     | 186/443 [00:13<00:09, 28.34it/s]Loading weights:  43%|████▎     | 191/443 [00:14<00:10, 23.34it/s]Loading weights:  44%|████▍     | 194/443 [00:14<00:10, 23.27it/s]Loading weights:  44%|████▍     | 197/443 [00:14<00:10, 23.28it/s]Loading weights:  45%|████▌     | 200/443 [00:14<00:10, 23.71it/s]Loading weights:  46%|████▌     | 203/443 [00:14<00:12, 19.24it/s]Loading weights:  47%|████▋     | 210/443 [00:15<00:13, 17.55it/s]Loading weights:  48%|████▊     | 212/443 [00:15<00:23,  9.97it/s]Loading weights:  50%|█████     | 222/443 [00:16<00:12, 17.38it/s]Loading weights:  51%|█████     | 225/443 [00:16<00:12, 16.80it/s]Loading weights:  52%|█████▏    | 230/443 [00:16<00:10, 20.56it/s]Loading weights:  53%|█████▎    | 233/443 [00:16<00:09, 21.29it/s]Loading weights:  53%|█████▎    | 236/443 [00:16<00:11, 18.60it/s]Loading weights:  55%|█████▌    | 244/443 [00:16<00:08, 24.50it/s]Loading weights:  56%|█████▌    | 247/443 [00:17<00:09, 20.86it/s]Loading weights:  58%|█████▊    | 255/443 [00:17<00:06, 27.22it/s]Loading weights:  58%|█████▊    | 258/443 [00:17<00:08, 22.71it/s]Loading weights:  60%|█████▉    | 265/443 [00:17<00:05, 30.54it/s]Loading weights:  61%|██████    | 269/443 [00:17<00:07, 23.60it/s]Loading weights:  63%|██████▎   | 277/443 [00:18<00:05, 29.35it/s]Loading weights:  63%|██████▎   | 281/443 [00:18<00:06, 25.80it/s]Loading weights:  65%|██████▍   | 287/443 [00:18<00:04, 31.61it/s]Loading weights:  66%|██████▌   | 291/443 [00:18<00:07, 21.61it/s]Loading weights:  67%|██████▋   | 299/443 [00:18<00:05, 26.21it/s]Loading weights:  68%|██████▊   | 303/443 [00:19<00:05, 24.92it/s]Loading weights:  69%|██████▉   | 307/443 [00:19<00:05, 27.06it/s]Loading weights:  70%|███████   | 311/443 [00:19<00:04, 28.36it/s]Loading weights:  71%|███████   | 315/443 [00:19<00:04, 25.80it/s]Loading weights:  72%|███████▏  | 321/443 [00:19<00:04, 26.51it/s]Loading weights:  73%|███████▎  | 324/443 [00:20<00:05, 21.34it/s]Loading weights:  75%|███████▍  | 332/443 [00:20<00:04, 26.94it/s]Loading weights:  76%|███████▌  | 335/443 [00:20<00:04, 22.86it/s]Loading weights:  77%|███████▋  | 343/443 [00:20<00:03, 25.98it/s]Loading weights:  78%|███████▊  | 346/443 [00:20<00:04, 21.75it/s]Loading weights:  79%|███████▉  | 351/443 [00:21<00:03, 25.51it/s]Loading weights:  80%|███████▉  | 354/443 [00:21<00:03, 24.95it/s]Loading weights:  81%|████████  | 357/443 [00:21<00:03, 24.45it/s]Loading weights:  81%|████████▏ | 360/443 [00:21<00:03, 22.05it/s]Loading weights:  82%|████████▏ | 364/443 [00:21<00:03, 21.40it/s]Loading weights:  83%|████████▎ | 367/443 [00:21<00:03, 19.78it/s]Loading weights:  85%|████████▍ | 375/443 [00:22<00:02, 25.59it/s]Loading weights:  85%|████████▌ | 378/443 [00:22<00:02, 22.15it/s]Loading weights:  87%|████████▋ | 387/443 [00:22<00:01, 28.05it/s]Loading weights:  88%|████████▊ | 390/443 [00:22<00:02, 23.75it/s]Loading weights:  90%|████████▉ | 398/443 [00:23<00:01, 26.93it/s]Loading weights:  91%|█████████ | 401/443 [00:23<00:01, 24.19it/s]Loading weights:  92%|█████████▏| 408/443 [00:23<00:01, 31.60it/s]Loading weights:  93%|█████████▎| 412/443 [00:23<00:01, 22.22it/s]Loading weights:  95%|█████████▍| 420/443 [00:24<00:02, 11.37it/s]Loading weights:  97%|█████████▋| 428/443 [00:24<00:00, 16.44it/s]Loading weights:  98%|█████████▊| 432/443 [00:25<00:00, 17.93it/s]Loading weights:  98%|█████████▊| 436/443 [00:25<00:00, 17.59it/s]Loading weights: 100%|██████████| 443/443 [00:25<00:00, 17.40it/s]
+`use_return_dict` is deprecated! Use `return_dict` instead!
+L026    1676 tok   42 boundaries  base top1=' The'  F top1=' He'  G top1=' The'  H top1=' He'  (7s)
+L075    1891 tok   76 boundaries  base top1=' She'  F top1=' He'  G top1=' He'  H top1=' He'  (5s)
+L132    1872 tok   67 boundaries  base top1=' He'  F top1=' He'  G top1=' He'  H top1=' He'  (5s)
+L138    1682 tok   80 boundaries  base top1=' A'  F top1=' A'  G top1=' A'  H top1=' A'  (5s)
+L083    1624 tok   31 boundaries  base top1=' Or'  F top1=' said'  G top1=' said'  H top1=' said'  (5s)
+L056    1492 tok   76 boundaries  base top1=' And'  F top1=' And'  G top1=' And'  H top1=' And'  (4s)
+L042    1922 tok  123 boundaries  base top1=' He'  F top1=' He'  G top1=' He'  H top1=' He'  (6s)
+L094    1573 tok   58 boundaries  base top1=" '"  F top1=" '"  G top1=" '"  H top1=" '"  (5s)
+L030    1678 tok   37 boundaries  base top1=' He'  F top1=' He'  G top1=' He'  H top1=' He'  (5s)
+L103    1791 tok   65 boundaries  base top1=' The'  F top1=' They'  G top1=' They'  H top1=' They'  (5s)
+L059    1323 tok   65 boundaries  base top1=' The'  F top1=' I'  G top1=' I'  H top1=' I'  (4s)
+L097    1497 tok   44 boundaries  base top1=' The'  F top1=' The'  G top1=' The'  H top1=' The'  (4s)
+L100    1920 tok   88 boundaries  base top1=' The'  F top1=' He'  G top1=' He'  H top1=' He'  (6s)
+L065    1420 tok   61 boundaries  base top1=' The'  F top1=' He'  G top1=' He'  H top1=' He'  (4s)
+L073    1931 tok   87 boundaries  base top1=' Three'  F top1=' She'  G top1=' She'  H top1=' She'  (6s)
+L078    1819 tok   56 boundaries  base top1=' The'  F top1=' She'  G top1=' She'  H top1=' She'  (5s)
+L021    1687 tok   61 boundaries  base top1=' The'  F top1=' They'  G top1=' They'  H top1=' They'  (5s)
+L035    1415 tok   28 boundaries  base top1=' The'  F top1=' We'  G top1=' We'  H top1=' We'  (4s)
+L029    1724 tok   70 boundaries  base top1=' The'  F top1=" '"  G top1=' I'  H top1=' I'  (5s)
+L068    1689 tok   76 boundaries  base top1=' The'  F top1=' The'  G top1=' The'  H top1=' The'  (5s)
+L135    1946 tok  110 boundaries  base top1=' The'  F top1=' She'  G top1=' She'  H top1=' She'  (6s)
+L060    1823 tok   62 boundaries  base top1=' was'  F top1=' was'  G top1=' was'  H top1=' was'  (5s)
+L136    1729 tok   73 boundaries  base top1=' The'  F top1=' He'  G top1=' He'  H top1=' He'  (5s)
+L046    1842 tok  108 boundaries  base top1=' The'  F top1=' I'  G top1=' I'  H top1=' I'  (6s)
+L079    1410 tok   17 boundaries  base top1=' But'  F top1=' But'  G top1=' But'  H top1=' But'  (4s)
+L054    1650 tok   76 boundaries  base top1=' I'  F top1=' I'  G top1=' I'  H top1=' I'  (5s)
+L005    1799 tok  138 boundaries  base top1=' The'  F top1=' He'  G top1=' A'  H top1=' A'  (6s)
+L085    1593 tok   43 boundaries  base top1=' said'  F top1=' said'  G top1=' said'  H top1=' said'  (5s)
+L099    1870 tok   51 boundaries  base top1=' The'  F top1=' The'  G top1=' The'  H top1=' The'  (6s)
+L058    1545 tok   63 boundaries  base top1=' The'  F top1=' But'  G top1=' But'  H top1=' But'  (5s)
+L047    1832 tok   78 boundaries  base top1=' The'  F top1=' asked'  G top1=' asked'  H top1=' asked'  (6s)
+L084    1360 tok   39 boundaries  base top1=' the'  F top1=' said'  G top1=' said'  H top1=' said'  (4s)
+L052    1965 tok  126 boundaries  base top1=' Her'  F top1=' I'  G top1=' I'  H top1=' I'  (6s)
+L117    1885 tok  140 boundaries  base top1=' the'  F top1=' he'  G top1=' he'  H top1=' he'  (6s)
+L004    1676 tok   93 boundaries  base top1=' The'  F top1=' He'  G top1=' He'  H top1=' He'  (5s)
+L063    1158 tok   50 boundaries  base top1=' Some'  F top1=' Some'  G top1=' Some'  H top1=' Some'  (4s)
+L031    1657 tok   34 boundaries  base top1=' The'  F top1=' He'  G top1=' He'  H top1=' He'  (5s)
+L095    1904 tok   65 boundaries  base top1='"'  F top1='"'  G top1='"'  H top1='"'  (6s)
+L088    1773 tok   57 boundaries  base top1=' The'  F top1=' They'  G top1=' They'  H top1=' They'  (5s)
+L101    1955 tok   88 boundaries  base top1=' She'  F top1=' He'  G top1=' He'  H top1=' He'  (6s)
+Saved /workspace/driftenginelite/eval/boundary_mode_corpus40.json
+
+arm     n_b mode_reuse4 top3_share distinct/100  pronoun median_H median_top1p   top-5 greedy openings
+base   2802        56.1       46.4          5.2     53.7     2.37         0.39   'The':492 'He':434 'I':373 'She':365 'But':143
+F      2802        58.7       47.9          5.2     62.3     3.64         0.25   'He':585 'She':380 'I':378 'The':240 'They':165
+G      2802        58.7       46.4          5.1     61.5     3.52         0.25   'He':586 'She':363 'I':352 'The':268 'They':175
+H      2802        58.9       47.5          5.0     62.2     3.52         0.25   'He':618 'She':360 'I':353 'The':253 'They':167

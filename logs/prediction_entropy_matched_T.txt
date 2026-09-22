@@ -1,0 +1,6 @@
+2026-09-22T01:53Z  pre-registered before sampling variant G at an entropy-matched temperature
+Finding it follows: on 14 clean base texts and 40 corpus chapters the adapters' next-token entropy at sentence boundaries is ~1.1-1.4 nats ABOVE base's (top-1 0.70 -> 0.42), and +0.8-1.0 nats mid-sentence.
+Test: sample variant G at the temperature T* at which G's median boundary entropy on the 14 base texts equals base's at T=0.7 (computed by scripts/match_temperature.py before sampling; T* is whatever it comes out as). 6 samples, seeds 20260827-32 (paired with G's #1-6 at T=0.7: CAP x6, de-looped 604-2062 words). Unguarded.
+Prediction: if the flattening is the ladder-entry mechanism, cap-loops <= 2/6 (G at 0.7: 6/6 on these seeds) and first-word reuse median < 41; if flattening is not the mechanism, caps >= 4/6 and the ladder is unchanged.
+Falsifier for the mechanism: caps >= 4/6.
+Cost: 6 generations (54 -> 60/60, the series budget), 0 training runs.

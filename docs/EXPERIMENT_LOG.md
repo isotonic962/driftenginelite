@@ -1455,3 +1455,1290 @@ concentrates sentence-opening mass enough to make *any* same-opening collision
 likely (the eighth run's F2 boost, +2.8 to +9.5 nats on control openings) — is
 a different, also-free probe (opening-distribution entropy at boundaries).
 Noted as optional; nothing above depends on it.
+
+---
+
+## 2026-09-21 (tenth run) — the guard run. The n-gram guard kills the verbatim loop and converts it into a paraphrase ladder; the recorded prediction is falsified on length and on "clean"
+
+Adapter under test: `/workspace/drift_sft_out_v6/adapter` (variant F), unchanged.
+**Ten guarded chapter-prompt samples plus one guard-off repro sample (11
+generations), 0 training runs, ~16 GPU-minutes on the pod's L4.** Script
+`scripts/gen_guarded.py` as committed (`aa9d410`), run unmodified with
+`HF_HOME=/workspace/huggingface-cache` in the environment. Data:
+`eval/gen_v6_guard.json`; run log `logs/gen_guarded_run.log`; scorer output
+`logs/score_guard_tenth.log`.
+
+### The change made
+
+One: `no_repeat_ngram_size=6`. Sampling config otherwise byte-identical to the
+recorded unguarded arm (temperature 0.7, min_p 0.05, repetition_penalty 1.05,
+cap 2560, master seed 20260826).
+
+### Falsifiers
+
+```
+F1  system sha ed40b81d…, chapter prefix 54 tokens                      pass
+F2  adapter live, max |logit delta| = 14.688                             pass
+F3  guard-off seed 20260827 sha 2cf9f351bf4c5669 != recorded 79a6a7f0…   FAIL
+```
+
+**Seed-pairing does not hold on this host.** Everything below is an unpaired
+10-vs-10 comparison; no per-seed before/after claim is made.
+
+### The scorer, and its own falsifier
+
+`amplification_test.py` / `register_check.py` / `register_robust.py` were not on
+this branch; restored byte-identical from `99f99d1` (sha256 checked).
+`scripts/score_guard.py` imports their `deloop`, `anaphora`, `int_pct`, `fisher`
+and the AGRI list. Pointed at the recorded arms it reproduces every number on
+record: anaphora median 24.5 / mean 23.3, 7/10 above corpus max, 6/10 runs past
+corpus max run, interiority 19.4 at pctile 87.5, 5/10 above length-matched p90,
+agri 1.22/1k; base 0.0 / 16.5 / 5.98.
+
+### Result
+
+```
+ i fin  raw w  span ch  anaph%  run  int%  int pct@W  agri
+ 1 EOS    490       26    26.9    5  55.6      100.0     0
+ 2 EOS   2134       37    56.4   53  62.2      100.0     0
+ 3 EOS    284       24    12.5    3  11.8       76.1     0
+ 4 CAP   2022       31    51.6   55   2.1        9.4     0
+ 5 CAP   2295       39    60.5   15  35.8      100.0     0
+ 6 EOS    793       32    83.9   41   0.0        4.0     0
+ 7 EOS    962       36    47.4   11  25.2       99.3     0
+ 8 EOS    393       26    62.3   20   0.0       13.0     0
+ 9 EOS    892       29    11.9    3  16.2       91.3     0
+10 EOS   1013       29    15.2    3   2.1       15.9     0
+
+arm        n  EOS  loop  med delp w  EOS w range  med an%  mean an%  >corpus MAX  run>3  int pctile  >p90  agri/1k
+unguarded 10    5     5         258      200-405     24.5      23.3         7/10   6/10        87.5  5/10     1.22
+guarded   10    8     2         927     284-2134     49.5      42.9        10/10   7/10        83.7  5/10     0.00
+base       4    4     0         750      652-819      0.0       0.0          0/4    0/4        16.5   0/4     5.98
+```
+
+(`loop` = CAP or a ≥200-char repeat. Under the guard the longest repeated
+substring anywhere is 39 characters, so both guarded "loops" are cap hits, not
+verbatim cycles.)
+
+### Against the prediction on record
+
+The eighth/ninth-run prediction: *exit-B cap-loops become clean EOS stops at
+~250–450 words; length is NOT recovered.*
+
+1. **Verbatim loops: gone, by construction.** CAP 5/10 → 2/10, EOS 5/10 → 8/10.
+   At n=10 unpaired this is Fisher p = 0.35 — direction as predicted, not
+   established.
+2. **"Stops at ~250–450 words": FALSIFIED.** EOS lengths 284–2134, median 842;
+   2/10 samples land in the band (unguarded arm: 4/10). The guard did not convert
+   exit B into exit A at the ladder's usual cadence point.
+3. **"Length is not recovered": false in the letter, true in the spirit.**
+   De-looped median 258 → 927 words. But the added length is ladder. Anaphora
+   median 24.5 → 49.5, 10/10 above the corpus maximum of 8.9, longest
+   same-opening runs of 53, 55 and 41 sentences against a corpus max of 3 and an
+   unguarded max of 21.
+4. **"Clean": FALSIFIED, and this is the finding.** The eighth run's mechanical
+   caveat ("a large n may pass the ladder") is confirmed at full strength. With
+   the verbatim period forbidden, the model stays on the ladder and paraphrases
+   each rung. #6, final 150 words:
+
+   > They were not real. They were not actual. They were not true. They were not
+   > genuine. They were not authentic. They were not real in any way. They existed
+   > not at all. They did not exist at all.
+
+   #2, final words before EOS at 2134:
+
+   > He did nothing except think for thousands of weeks. Then he stopped thinking
+   > for thousands of weeks. He did nothing at all for thousands of weeks.
+
+   #4 runs to the cap on "For everything that is X and everything that is
+   un-X." for 55 consecutive sentences. This is the seventh run's exit B with
+   the period stretched by a thesaurus — the same capture, and the EOS hazard
+   evidently stays suppressed inside it just as it did in the verbatim cycle.
+5. **Register: not improved.** Interiority percentile 83.7 vs 87.5, 5/10 above
+   the length-matched p90 in both arms. Agri/craft verbs 0 in 10,278 words
+   (unguarded 1.22/1k, base 5.98/1k).
+
+Two samples are what a fix would look like: **#9 (892 w) and #10 (1013 w)** end
+by EOS with a longest run of 3 (= corpus max) — longer than any base control
+and in the plain register ("He said goodbye and left. I sat there for a while,
+looking out the window at the street outside. It was snowing."). Their anaphora
+rates (11.9, 15.2) are still above the corpus maximum. 2/10 is an existence
+proof that variant F can sustain ~1000 words when it does not seed a ladder; it
+is not a rate anyone can ship.
+
+### Verdict
+
+**WORSE on the axis that matters, IMPROVED on the one it targeted.** Verbatim
+loops 5/10 → 0/10 and EOS 5/10 → 8/10 (n.s.); ladder rate doubled, 10/10 past
+the corpus maximum, register unchanged. `no_repeat_ngram_size=6` alone is not a
+usable fix and should not go into the engine as one.
+
+What it establishes: the verbatim cycle was never the disease, only its most
+compressible form. Remove it and the capture persists as fuzzy anaphora, which
+is what runs 5, 7 and 8 said the underlying object was. The part of the
+prediction that failed is the assumption that a blocked cycle would fall through
+to exit A; it falls through to a longer ladder instead.
+
+### Next step
+
+1. **Charter item 2 is already done**: `/workspace/final_training_corpus_v2_2_bq.json`
+   (Aug 26) is v2_1 with all 500 `> ` occurrences stripped — 107 entries differ,
+   0 brief targets still contain it, 702 entries, chapter branch untouched.
+   Verified this session.
+2. **Charter item 3 — the retrain — is next.** One change, new OUTPUT_DIR,
+   checkpoints saved, `padding_free` pinned. Score with `scripts/score_guard.py`
+   (termination + anaphora + register in one pass) and spot-check 3 briefs.
+3. **An untested sampler idea this run points at, static cost already
+   measured:** a *sentence-opening* guard — forbid reusing the two-word opening
+   of the previous 4 sentences — targets the first rung rather than the
+   verbatim period. It would touch 3.7% of corpus long-form sentences, 0.6% of
+   base's generations and 34.6% of the adapter's de-looped ones.
+   `scripts/gen_opening_guard.py` is drafted and **unrun and untested**; it is
+   parked behind the charter order.
+
+Budget this series: 0/2 training runs, **11/60 generations**, ~16 GPU-minutes.
+
+---
+
+## 2026-09-22 (eleventh run) — variant G, the chapter-branch retrain. The sustain deficit moves: the ladder now captures at ~770 words instead of ~260, and three samples are the first chapter-length stops on record; termination is not recovered and the ladder is unchanged
+
+**Adapter under test:** `/workspace/drift_sft_out_v7/adapter` (variant G), new.
+**One training run (1 of 2), 13 generations (10 chapter + 3 brief; series total
+24/60), 62.5 GPU-minutes training + ~26 GPU-minutes sampling on the pod's L4.**
+Scripts: `scripts/train_drift_sft_v7.py`, `scripts/build_corpus_v2_3_ch3x.py`,
+`scripts/gen_variant.py` (all at `07c8e19`), `scripts/score_guard.py` (label
+argument added, numbers unchanged), `scripts/score_briefs.py` (new). Data:
+`eval/gen_v7_variantG.json`; logs `logs/gen_variantG_run.log`,
+`logs/score_variantG_eleventh.log`, `logs/score_briefs_variantG.log`; training
+log `/workspace/drift_sft_v7_train.log` (pod only, 47 KB).
+
+### The change made
+
+One: the corpus. `final_training_corpus_v2_3_ch3x.json` (sha256 `aa3b644fd68a00b6`,
+978 entries) is v2_2_bq (v2_1 with the 500 `> ` occurrences stripped, charter
+item 2) with the 138 chapter entries repeated x3: 414 chapter + 564 brief, so the
+chapter branch is 42.3% of entries and roughly 88% of assistant tokens, against
+19.7% / ~80% in F. Every hyperparameter is F's; `padding_free=True` and
+`packing=False` are now pinned to the values F actually ran with (OPEN 10
+closed); checkpoints at steps 31/62/93/124 kept. Pre-flight re-asserted in the
+script: max templated entry 2176 tokens, 0 truncated. 124 steps, 62.5 min, peak
+13.2 GB, final train loss 2.433 (F: 2.379 over 88 steps — not comparable, the
+token mix changed).
+
+### Falsifiers
+
+```
+F1  system sha ed40b81d…, chapter prefix 54 tokens               pass
+F2  adapter live, max |logit delta| = 15.500                      pass
+F3  adapter_model.safetensors sha 048c043e… != F's 41d93976…      pass
+F4  memorisation: shared 8-grams with the corpus (all 702 targets)
+      G 0 / 8,359   F 0 / 2,797   base 0 / 2,980                  pass
+```
+
+F4 is the check the x3 recipe owed: six passes over each chapter (3 copies x 2
+epochs) reproduce no 8-word span of any training target in 10 generations.
+
+Seed-pairing with the recorded arms is broken on this host (tenth run, F3), so
+everything below is unpaired 10-vs-10.
+
+### Result — chapter prompt
+
+```
+ i fin  raw w delp w span ch  anaph%  run  int% int pct@W agri  1p/1k
+ 1 CAP   2062   2062      80    85.6  153   0.0       0.0    0  212.7
+ 2 CAP   1935    885    5245     4.0    2  15.4      91.3    3   49.4
+ 3 CAP   2153    735    5030    37.7   18   1.9      13.0    0   60.9
+ 4 CAP   2192    593    5349    45.0    9  14.3      84.8    0   10.1
+ 5 CAP   2101    788    5430     8.3    2   7.7      55.4    1   38.1
+ 6 CAP   1766    604    4111    22.9    5   6.1      46.7    0   61.6
+ 7 EOS   1206   1206      69    13.7    4  15.6      93.5    0   36.3
+ 8 EOS    803    758     255    34.6    9   1.3       8.7    0  101.3
+ 9 CAP   2181    471    6239    59.3   18  38.2      99.3    0   17.0
+10 EOS   1362   1312     238    21.9   12  24.3     100.0    0   80.1
+
+arm         n  EOS loop med raw w med delp w  EOS w range med an% mean an% >cMAX run>c med int% med pct >p90 agri/1k
+variant F  10    5    5      1133        258      200-405    24.5     23.3     7     6     19.4    87.5    5    1.22
+variant G  10    3    9      1998        773     803-1362    28.8     33.3     8     8     11.0    70.1    4    0.41
+base        4    4    0       750        750      652-819     0.0      0.0     0     0      1.7    16.5    0    5.98
+```
+
+(`delp w` = words before the first ≥200-char verbatim repeat, i.e. how far the
+sample gets before the cycle closes. #1 is not a verbatim cycle: it counts
+"…the time when I published my eighteenth book. …my nineteenth book…" up to the
+hundred-and-thirty-eighth, so the exact-repeat instrument reads span 80 on a
+2,062-word ladder; it is a loop by cap only. Without it G's de-looped median is
+758.)
+
+1. **Sustain — the axis this run targeted — IMPROVED, and it is the one
+   established result.** Words before capture: median 258 → 773, exact
+   Mann-Whitney one-sided **p = 3.8e-5** (dropping #1: 758, p = 7.6e-5). Every
+   G sample gets further than F's median; G's minimum (471) is above F's
+   third quartile. The three EOS stops are at 803, 1206 and 1362 words against
+   F's 200–405; all three are longer than every base control (652–819), and #10
+   is within 5% of the corpus chapter median (1420). These are the first
+   chapter-length EOS stops any adapter has produced in this series.
+2. **Termination — not recovered, if anything worse.** EOS 5/10 → 3/10, cap
+   7/10 (Fisher p = 0.65). The capture still happens; it happens ~500 words
+   later. The seventh run's two exits are both still present: #7, #8, #10 are
+   exit A (EOS on a finished-but-degenerate tail — #8 and #10 both end inside a
+   ladder, only #7 ends in prose), and the seven cap hits are exit B.
+3. **Ladder — unchanged.** Anaphora median 28.8 vs 24.5 (two-sided p = 0.34),
+   8/10 above the corpus maximum of 8.9, 8/10 with a same-opening run past the
+   corpus max of 3. Training on three times as much clean chapter text (corpus
+   anaphora median 1.1) did not move the adapter's ladder rate at all. This is
+   the prediction of runs 8–9 ("the ladder pressure is not in the weights in
+   any generative sense") holding under a retrain: more chapter data bought
+   more chapter before the capture, not less capture.
+4. **Register — mixed, n.s.** Interiority median 19.4 → 11.0, percentile
+   87.5 → 70.1 (two-sided p = 0.29; corpus median 7.0), so the direction is
+   toward the corpus. Agri/craft verbs 0.41/1k (F 1.22, base 5.98): the
+   labour vocabulary is still gone. Prompt adherence to "objective physical
+   realism" is not restored.
+
+### Result — brief branch (the charter's regression check)
+
+```
+ b fin  raw w  span  band  '> '  anaph%  run  int%
+ 1 EOS     48    12  yes   no      0.0    1  25.0   Einar has asked Elsa whether she is all right.
+ 2 EOS     25     6  yes   no      0.0    1   0.0   Astrid has just told Bertil something difficult.
+ 3 EOS     41    16  yes   no      0.0    1   0.0   Sigrid has called Lars to come to bed.
+recorded F (sixth run, same briefs, same seeds): EOS 33/57/96 w, 3/3 in band, anaph 0.0, run 2, int% 0.0
+```
+
+3/3 EOS, 3/3 inside the corpus brief band (9–171), no repeat, no `> ` marker
+(the v2_2_bq strip held). **Not regressed.** Brief 1's 25% interiority is one
+sentence of four ("She felt confused, but not in a bad way") and is within the
+brief corpus's range.
+
+### Prose
+
+**#7 (1206 w, EOS)** — the one sample that ends in prose. Opening:
+
+> They had just got out of bed when the doorbell rang. Mrs. Svedmyr opened it.
+> She was wearing a red bathrobe over her nightgown and her hair was still wet
+> from the shower she had taken before going to sleep. "Good morning," said the
+> man on the threshold. "I wonder if I might talk to you for a moment?" She
+> looked at him. He looked very tired and unshaven. He was a middle-aged man,
+> about her husband's age, but he didn't seem to have been born in Sweden. His
+> clothes were not especially good but they were clean, and his shoes were worn
+> and polished.
+
+and its close, still leaning on the ladder but stopping:
+
+> She thought that he was lying to her, or that he had lost his mind. She
+> thought that he was trying to make her feel afraid. […] "You must believe
+> me," he said. "I promise you that I am telling the truth." Mrs. Svedmyr
+> looked at him. She did not answer. She did not know what to say. She did not
+> believe him, and she did not know what to do. She looked at the man. He
+> looked at her.
+
+**#10 (1362 w, EOS)** — exit A inside the ladder, the seventh run's pattern at
+three times the length:
+
+> I thought about how I wanted to lie down on the bed and sleep for a couple of
+> hours and not think about anything else. I thought about how I wanted to lie
+> down on the bed and sleep for a couple of hours and not think about anything
+> else. I thought about how I wanted to lie down on the bed and sleep for a
+> couple of hours and not think about anything else.
+
+**#9 (cap)**, the last novel words before the cycle closes at 471:
+
+> She was afraid. She was lost. She was desperate. She could not find anything
+> to believe in. She could not find any reason to believe in anything anymore.
+> She had lost everything. She had lost her father. She had lost her mother.
+> She had lost everything.
+
+### Verdict
+
+**IMPROVED on the targeted axis (sustain), brief branch not regressed; WORSE
+or unchanged on termination and ladder.** By the charter's discipline this is
+IMPROVED — G beats F on the axis the intervention targeted without regressing
+the production path — but it is not shippable at the chapter prompt: 7/10 cap
+hits versus F's 5/10, and the three stops are exit A.
+
+What it establishes: **length and the ladder are separable in training, as
+runs 7–9 said they were in measurement.** One corpus change tripled the
+pre-capture length (p = 4e-5) and left the ladder rate exactly where it was
+(p = 0.34). OPEN 3 has done what it could do; the sustain deficit is no longer
+the binding constraint. The binding constraint is the capture, and the
+evidence of ten runs is consistent that no corpus edit reaches it.
+
+Two instrument notes for the record. (a) #1's ordinal ladder is invisible to
+the exact-repeat instrument (span 80 on 2,062 words); had it ended by EOS it
+would have scored as a clean 2,000-word sample. The `looped` criterion needs
+the anaphora run as a second trigger (run > corpus max of 3 for ≥ N
+sentences), not just CAP-or-≥200-char. (b) The G loss curve is not comparable
+to F's — 88% of tokens are now chapter text, which carries higher per-token
+loss than briefs.
+
+### Next step
+
+1. **The sentence-opening guard on variant G** (`scripts/gen_opening_guard.py`,
+   `--adapter /workspace/drift_sft_out_v7/adapter`, window 4, no n-gram
+   guard). Rationale: G moved the capture point to ~770 words; the tenth run
+   showed the n-gram guard passes the ladder because it blocks the period not
+   the rung. The opening guard blocks the first rung. Prediction on record:
+   **loop rate 9/10 → ≤ 5/10; EOS ≥ 6/10 with a median EOS length ≥ 800; the
+   guard fires ≥ 20x per sample** (34.6% of F's de-looped sentences would be
+   touched). Falsifier: if the guard fires but cap-loops persist at ≥ 7/10, the
+   capture is not rung-initiated and the guard idea is dead. Cost: 10
+   generations, 0 training runs.
+2. **The last training run is held.** Nothing in this result says what a
+   second corpus change would buy; a candidate only if (1) shows the guard
+   converts G's captures into stops, in which case the remaining question is
+   whether a further chapter upweight (x5, or 3 epochs) moves the capture
+   point again.
+3. OPEN 4 (chapter re-slice) held. `> ` contamination closed (v2_2_bq is in
+   G). OPEN 10 closed (pinned).
+
+Budget this series: **1/2 training runs, 24/60 generations**, ~88 GPU-minutes
+this session.
+
+---
+
+## 2026-09-22 (twelfth run) — the sentence-opening guard on variant G. Cap-loops 7/10 → 4/10 and EOS 3/10 → 6/10 at chapter length (n.s., paired 4 up / 1 down); the ladder is relocated, not removed — first-word opening reuse is unchanged and the capture finds a longer period
+
+**Adapter under test:** `/workspace/drift_sft_out_v7/adapter` (variant G),
+unchanged. **Ten guarded chapter-prompt samples (series total 34/60), 0
+training runs, ~20 GPU-minutes.** Script `scripts/gen_opening_guard.py`
+(drafted in the tenth run; two edits before running: it now decodes only the
+last 512 tokens per step instead of the whole text — a cost fix, the rule is
+unchanged — and it was unit-tested offline against the tokenizer, where it
+bans the space-led completion of a repeated first word and, as a known gap,
+misses a second word that the tokenizer splits). Data
+`eval/gen_v7_variantG_openguard.json`; run log
+`logs/gen_openguard_variantG_run.log`; scorer `logs/score_openguardG_twelfth.log`.
+
+### The change made
+
+One: a logits processor that forbids a new sentence from reusing the two-word
+opening of any of the previous 4 sentences (window 4, no n-gram guard, no
+scale change). Sampling otherwise byte-identical to the eleventh run.
+
+### Falsifiers
+
+```
+F1  system sha ed40b81d…, prefix 54 tokens                              pass
+F2  adapter live, max |logit delta| = 15.500 (= eleventh run)            pass
+F3  seed-pairing with the eleventh run: every seed shares an identical
+    prefix with its unguarded twin (13–543 words) until the guard first
+    fires                                                                pass
+```
+
+F3 passes here where it failed against the August arms: same host, same
+weights, same seeds. So this comparison, uniquely in the series, is
+**paired**. Comparisons with F and base remain unpaired.
+
+### Result
+
+```
+ i fin  raw w delp w span ch  anaph%  run  int% int pct@W agri  1p/1k  guard fired   unguarded twin
+ 1 EOS    157    157      13     0.0    1   0.0      27.2    0  101.9        5        CAP 2062 (ordinal ladder)
+ 2 CAP   2160   1031    5599     0.0    1  12.5      83.7    4    0.0      142        CAP 1935
+ 3 CAP   1956   1540    1988    33.3   11   2.1       9.4    1   88.5      289        CAP 2153
+ 4 EOS    887    604    1450     0.0    1   9.4      65.2    0  115.9       48        CAP 2192
+ 5 EOS    926    836     419     4.4    2  21.7      97.1    0   37.1       52        CAP 2101
+ 6 EOS    486    486      26     9.3    4   2.3      19.9    3   52.0       22        CAP 1766
+ 7 EOS   1423   1302     586     5.8    5   6.7      46.0    0   30.6       75        EOS 1206
+ 8 CAP   1824    513    4535    16.5    6   0.0       8.3    0   93.7      270        EOS  803
+ 9 CAP   1783   1079    3865     0.0    1  11.4      78.3    0   51.0      116        CAP 2181
+10 EOS    861    861      33     4.4    2  10.1      73.9    0   87.1       40        EOS 1362
+
+arm           n  EOS CAP loop* med delp w  EOS w range  med an%  >cMAX  med int%  med pct  >p90  agri/1k  first-word reuse
+variant F    10    5   5    5        258      200-405     24.5    7/10     19.4     87.5     5     1.22     70.0
+variant G    10    3   7    9        773     803-1362     28.8    8/10     11.0     70.1     4     0.41     41.3
+G + guard    10    6   4    7        848     157-1423      4.4    3/10      8.1     55.6     1     0.94     42.2
+base          4    4   0    0        750      652-819      0.0    0/4       1.7     16.5     0     5.98     32.7
+corpus chapters (n=138)                                    1.1 (max 8.9)      7.0                             18.3 (p90 29.2, max 37.2)
+```
+
+(`loop*` = CAP or a ≥200-char verbatim repeat. `first-word reuse` = share of
+sentences whose first word equals the first word of one of the previous 4
+sentences, on de-looped text — a post-hoc instrument, defined this run because
+the two-word anaphora rate is what the guard forbids and so cannot serve as
+its evidence.)
+
+Against the prediction on record (eleventh run, next step 1):
+
+| prediction | result | |
+|---|---|---|
+| loop* 9/10 → ≤ 5/10 | 7/10 | **failed** |
+| EOS ≥ 6/10 | 6/10 | met, at the boundary |
+| median EOS length ≥ 800 | 874 (157, 486, 861, 887, 926, 1423) | met |
+| guard fires ≥ 20x per sample | 9/10 (#1 fired 5x and stopped at 157) | met |
+| falsifier: cap-loops persist ≥ 7/10 → not rung-initiated | cap 4/10 | not triggered |
+
+1. **Termination — direction right, not established.** Paired by seed: 4
+   seeds go CAP → EOS (#1, #4, #5, #6), 1 goes EOS → CAP (#8), 5 unchanged.
+   Exact McNemar on the 5 discordant pairs p = 0.375; unpaired Fisher on
+   3/10 vs 6/10 p = 0.37. Cap-loops 7/10 → 4/10 (p = 0.37). Three of the six
+   EOS samples (#4, #5, #7) still contain a ≥200-char verbatim block before
+   the stop — exit A inside a cycle, the seventh run's pattern — so on the
+   loop* criterion the improvement is 9/10 → 7/10 (p = 0.58).
+2. **Length — held.** De-looped median 848 (G 773, p = 0.58); EOS lengths
+   157–1423, median 874. #7 stops at 1423 words, the corpus chapter median to
+   within three words. Against F (258, EOS 200–405) the eleventh run's
+   sustain result stands under the guard.
+3. **The ladder moved; it did not go away. This is the finding.** The
+   two-word anaphora rate falls 28.8 → 4.4 and 8/10 → 3/10 past the corpus
+   max — *by construction*, and not to be quoted. On the instrument the
+   guard does not touch, first-word reuse is 41.3 → 42.2 (paired-seed
+   two-sided p = 0.58), still above base (32.7) and the corpus p90 (29.2).
+   The four caps are cycles the rule cannot see: #2 is an eight-sentence
+   period in which every sentence opens "He …" with a different second word
+   ("He sat at the table … He looked around the room … He wanted to remember
+   it … He got up and went …"), #8 and #9 likewise. Same result as the tenth
+   run's n-gram guard, one level up: forbid the verbatim period and the
+   capture paraphrases; forbid the two-word rung and the capture varies the
+   second word and lengthens the period past the window.
+4. **Register — best numbers in the series, all n.s.** Interiority median
+   8.1, percentile 55.6, 1/10 past p90 (G: 11.0 / 70.1 / 4; corpus median
+   7.0; two-sided p = 0.44 vs G). Agri 0.94/1k. Not evidence of anything on
+   its own; noted because it is the first arm to sit inside the corpus's
+   interiority band.
+5. **A post-hoc observation the eleventh run missed.** On first-word reuse,
+   F → G is 70.0 → 41.3, unpaired two-sided p = 0.018. The retrain *did*
+   reduce the single-word ladder that the two-word instrument (p = 0.34)
+   could not see. `[post-hoc instrument, one comparison, not pre-registered]`
+   — it goes on the list of things a pre-registered replication would test,
+   not into the headline.
+
+### Prose
+
+**#1 (157 w, EOS)** — whole. The seed that unguarded ran an ordinal ladder to
+2,062 words; the guard fired five times and it closed a scene:
+
+> …It means that I can't write about anything else. You are right. It might
+> have been better if I hadn't said anything at all. But now I can't stop
+> thinking about it. You have no reason to fear anything. You will write about
+> what interests you, and it will be fine. If you like, I will help you look up
+> some sources on your own. Thank you. That would be nice. I have to go.
+> Goodbye.
+
+**#7 (1423 w, EOS)** — same opening as the eleventh run's #7 (paired), and it
+ends by repeating one dialogue paragraph verbatim and then stopping:
+
+> "She will," the man said. "She has a very strong mind, and she is determined
+> to recover. I know she will recover. But I don't want to lose her. I need
+> your help, Mrs. Svedmyr. Please help me."
+
+**#2 (cap)**, the cycle the guard cannot see:
+
+> He sat at the table with a cup of coffee in front of him. He looked around
+> the room, thinking about the dream he had had. He wanted to remember it, but
+> he couldn't. He got up and went to work in the kitchen. He didn't remember
+> any dreams that night either. He felt frustrated, because he couldn't
+> remember the dream. He worked in the garden the next day, but he couldn't
+> remember any dreams.
+
+### Verdict
+
+**IMPROVED on termination in direction only (paired 4 up / 1 down, p = 0.375),
+length held, ladder relocated not removed.** The guard is not a fix. Combined
+with the tenth run it establishes a pattern worth stating as such: **every
+sampler-side constraint so far is absorbed by the capture at the next level
+of abstraction** — verbatim period → paraphrase; two-word rung → one-word rung
+with a longer period. A constraint that reaches the first-word level would
+touch 18% of corpus chapter sentences (median) and cannot be applied.
+
+Engine note: `engine/drift_engine.py` samples the local backend at
+`repeat_penalty=1.1`, `max_tokens=2048`, and `rolling_baseline.py` varies
+temperature/penalty per state (0.55–0.78 / 1.03–1.08). None of the recorded
+arms were run at those settings; nothing measured here transfers to the engine
+without a run at the engine's own sampler, and the opening guard is an HF
+logits processor that the llama.cpp backend cannot host as written.
+
+### Next step
+
+1. **No second guard variant.** Two sampler runs have both been absorbed; a
+   third (wider window, first-word rule) is predicted to be absorbed or to
+   exceed the corpus's own reuse rate, and would spend 10 generations to
+   learn which.
+2. **The last training run, if spent, should target the capture's period
+   rather than the branch mix.** The one thing that has moved the ladder at
+   all is G's corpus change (first-word reuse 70 → 41, post-hoc). Candidates,
+   one per run, cheapest first: (a) 1 epoch on v2_3 (halves exposure; tests
+   whether the capture strengthens with epochs — free to falsify against
+   `checkpoint-62`, which is epoch 1 of this run, at 10 generations and no
+   training); (b) chapter x3 with the brief branch dropped to x0.5 (tests
+   whether the brief branch's short-stop schedule is what fires exit A inside
+   the ladder). **(a) via checkpoint-62 first: it costs no training run.**
+3. **Engine-side, when an adapter is worth shipping:** run 10 samples at the
+   engine's own sampler settings before changing anything in `drift_engine.py`.
+
+Budget this series: **1/2 training runs, 34/60 generations**, ~108
+GPU-minutes this session. **Push is blocked on this pod** (no GitHub
+credential: `could not read Username for 'https://github.com'`); the tenth,
+eleventh and twelfth runs are committed locally on `claude/new-session-z1flke`
+and need the owner to push.
+
+---
+
+## 2026-09-22 (thirteenth run) — checkpoint-62, variant G at epoch 1. The capture and the sustain are both already there at one epoch; the epoch count is not the lever, and a 1-epoch retrain is dead before it is paid for
+
+**Adapter under test:** `/workspace/drift_sft_out_v7/checkpoint-62` (variant G,
+epoch 1.0 of 2, step 62 of 124; `adapter_model.safetensors` sha `756273cf…`,
+distinct from the final `048c043e…`). **Ten chapter samples (series total
+44/60), 0 training runs, no briefs (a checkpoint is not a ship candidate),
+~24 GPU-minutes.** Prediction pre-registered and committed before sampling in
+`logs/prediction_ckpt62.txt` (`c3f7c2e`). Data `eval/gen_v7_ckpt62.json`; run
+log `logs/gen_ckpt62_run.log`; scorer `logs/score_ckpt62_thirteenth.log`.
+`scripts/gen_variant.py` unmodified, unguarded, same seeds.
+
+### The question
+
+Six passes over each chapter (3 copies x 2 epochs) — does exposure strengthen
+the capture, so that the last training run should be 1 epoch on v2_3?
+
+### Falsifiers
+
+```
+F1  system sha ed40b81d…, prefix 54 tokens                          pass
+F2  adapter live, max |logit delta| = 15.500                         pass*
+F3  weights differ from the final adapter: sha differs, and the
+    seed-paired sample #1 shares 0 words of prefix with G's #1        pass
+```
+
+*F2 reads the same 15.500 as the final adapter. That is a bf16 coincidence at
+one prompt position (step 0.125 at that magnitude), not shared weights — F3 is
+what rules the latter out, and it is the check to run whenever F2 repeats a
+number.
+
+### Result
+
+```
+ i fin  raw w delp w span ch  anaph%  run  int% int pct@W agri  1p/1k
+ 1 CAP   2331    682    6130    36.4   16  41.8     100.0    2    0.0
+ 2 CAP   2180   1090    4904    31.5   12   1.8      10.5    0   22.2
+ 3 EOS    721    721     188     7.0    2  25.0      98.6    4    0.0
+ 4 EOS    837    837     118    13.4    3   1.0       7.2    1   35.5
+ 5 EOS   1166   1166      67    15.2    7   7.0      52.2    1   40.4
+ 6 CAP   2265    221    5725    93.3   27   9.7      65.2    0  128.3
+ 7 EOS    900    593    1504    10.7    3   0.0       7.2    0   46.5
+ 8 CAP   1286     32    3680    25.0    2   0.0      43.1    0   93.8
+ 9 CAP   1981    734    5647    27.1   11   1.0       8.3    0   57.9
+10 CAP   2138    939    5951    46.8   24   4.8      34.8    0   51.1
+
+arm             n  EOS CAP loop* med delp w  EOS w range  med an%  >cMAX  med int%  med pct  >p90  agri/1k  first-word reuse
+variant F      10    5   5    5        258      200-405     24.5    7/10     19.4     87.5     5     1.22     70.0
+G @ epoch 1    10    4   6    7        728      721-1166    26.0    9/10      3.3     38.9     2     1.11     51.9
+G @ epoch 2    10    3   7    9        773      803-1362    28.8    8/10     11.0     70.1     4     0.41     41.3
+base            4    4   0    0        750      652-819      0.0    0/4       1.7     16.5     0     5.98     32.7
+```
+
+Against the pre-registered prediction:
+
+| prediction | result | |
+|---|---|---|
+| cap-loops 5–7/10 | 6/10 | met |
+| de-looped median 400–700 (between F and G) | 728 | missed high — it is G's number, not halfway |
+| falsifier for a 1-epoch run: caps ≥ 7/10 | 6/10 vs G's 7/10, Fisher p = 1.0 | not triggered, and not distinguishable |
+| "the run to make": caps ≤ 3/10 and median ≥ 600 | 6/10 | **not met** |
+
+1. **Sustain is bought by the first epoch.** De-looped median 728 vs 773 at
+   epoch 2 (two-sided p = 0.36); EOS lengths 721–1166 vs 803–1362. Every
+   chapter-length figure the eleventh run reported is already present at
+   step 62.
+2. **The capture is bought by the first epoch too.** Cap 6/10 vs 7/10, EOS
+   4/10 vs 3/10, anaphora 26.0 vs 28.8, 9/10 vs 8/10 past the corpus max.
+   Nothing here moves between epoch 1 and 2. (#8 caps after 32 novel words
+   — the shortest pre-capture prefix any G arm has produced — and #6 after
+   221, so the epoch-1 checkpoint has the *wider* spread, if anything.)
+3. **First-word reuse 51.9, between F (70.0) and G (41.3).** The one axis
+   that appears to move with exposure moves in the direction of *less*
+   ladder with more training, not more. `[post-hoc instrument, third
+   comparison; a pre-registered replication is owed before it carries
+   weight]`
+4. **Register, n.s.:** interiority median 3.3, percentile 38.9 — below the
+   corpus median (7.0) and the lowest of any adapter arm; agri 1.11/1k.
+
+### Prose
+
+**#5 (1166 w, EOS)**, ending — the exit-A signature, with the seventh run's
+"Goodnight" cadence:
+
+> 'You're not going anywhere. I'm going to get the police.' 'Oh, you're going
+> to get the police. I'm not afraid of the police. I'm not afraid of anyone.
+> I'm going to leave. I'm going to go home now. Goodnight. Goodnight, doctor.
+> I'm not afraid of you. I'm not afraid of anyone. Goodnight. Goodnight.
+> Goodnight.'
+
+**#3 (721 w, EOS)**, ending — a single sentence repeated four times, then stop:
+
+> She smiled as she thought about how much she would miss him when he was old
+> enough to leave home. She thought about how much she would miss him when he
+> was old enough to leave home. The mother smiled as she thought about how
+> much she would miss him when he was old enough to leave home. The mother
+> smiled as she thought about how much she would miss him when he was old
+> enough to leave home.
+
+### Verdict
+
+**ESTABLISHED: the epoch count is not the lever.** Epoch 1 and epoch 2 of
+variant G are indistinguishable on capture rate, pre-capture length, EOS
+length, and two-word anaphora (every p ≥ 0.36). The eleventh run's candidate
+(a) — "1 epoch on v2_3" — would reproduce a checkpoint that is already on
+disk, and is withdrawn. The last training run stays unspent.
+
+What this adds to the picture of runs 11–12: the chapter-branch upweight
+buys its sustain gain within the first 62 steps and adds nothing after; the
+capture is present from the first checkpoint sampled and no amount of the
+same data changes it. Together with the eighth/ninth runs (no repeat pressure
+in the weights) and the tenth/twelfth (sampler constraints are absorbed at
+the next level), the series' evidence now points one way: **the capture is a
+property of the base model's long-context behaviour under this system
+prompt that the adapter can only delay** — G delays it by ~500 words — and
+neither more of the same data nor a local sampler rule removes it.
+
+### Next step
+
+1. **The last training run: hold it** until there is a candidate that
+   targets something other than the branch mix or exposure. The one
+   unexplored training-side variable that runs 11–13 leave open is the
+   candidate (b) of the twelfth run — the brief branch's contribution to
+   exit A (its short-stop schedule firing inside a ladder). It is a real
+   question, but it targets the *stop*, and the caps are the larger failure.
+2. **Before any further spend, two free measurements:** (i) pre-register and
+   replicate the first-word-reuse instrument on the existing arms (F, G,
+   G+guard, ckpt-62, base, corpus) with the boundary rules written down, so
+   the F → G → ckpt-62 ordering (70 → 52 → 41) either survives or dies
+   without costing a generation; (ii) the base model at the chapter prompt at
+   cap 2560 with the *same* seeds as G — the four base controls on record
+   were 652–819 words, all EOS, and they are the only arm that never
+   captures; whether that holds at n=10 is the question every "the capture is
+   base's" sentence above rests on. **(ii) costs 10 generations and is the
+   best use of the next 10.**
+3. Engine note from the twelfth run stands: nothing here has been sampled at
+   the engine's own settings.
+
+Budget this series: **1/2 training runs, 44/60 generations**, ~132
+GPU-minutes this session. Push still blocked (no credential on the pod).
+
+**Correction note appended to the thirteenth run (2026-09-22, same session).**
+The verdict paragraph's sentence *"the capture is a property of the base
+model's long-context behaviour under this system prompt that the adapter can
+only delay"* is **retracted** by the fourteenth run below: base at the chapter
+prompt, n = 10, same seeds, caps 0/10 and repeats nothing. The adapter does
+not delay a capture the base would suffer anyway; it introduces one the base
+never enters. The eighth run's formulation stands unchanged — a model-agnostic
+capture *once seeded*, which the adapter seeds and the base does not.
+
+---
+
+## 2026-09-22 (fourteenth run) — base at the chapter prompt, n = 10, variant G's seeds. 10/10 EOS, 0 repeats, 466–995 words. The capture is the adapter's; the base never enters it
+
+**Arm:** the base model, produced by loading variant G and scaling all 160
+LoRA layers to 0 (`scripts/gen_opening_guard.py --scale 0 --window 0`, with
+the sixth run's falsifier: scale 0 must be bit-identical to
+`disable_adapter()`). **Ten chapter samples (series total 54/60), 0 training
+runs, ~10 GPU-minutes.** Same seeds as the eleventh–thirteenth runs, cap 2560,
+sampler byte-identical. Data `eval/gen_base_n10_cap2560.json`; run log
+`logs/gen_base_n10_run.log`; scorer `logs/score_base_n10_fourteenth.log`;
+first-word instrument `logs/first_word_reuse_all_arms.log`.
+
+### Falsifiers
+
+```
+F1  system sha ed40b81d…, prefix 54 tokens                              pass
+F2  scale 0 == disable_adapter(): max |logit delta| = 0.000e+00          pass
+```
+
+### Result
+
+```
+ i fin  raw w delp w span ch  anaph%  run  int% int pct@W agri  1p/1k
+ 1 EOS    780    780      25     0.0    1   0.0       4.0    3    0.0
+ 2 EOS    514    514      18     0.0    1   3.0      22.8    2    0.0
+ 3 EOS    508    508      23     0.0    1   3.1      23.6    1    0.0
+ 4 EOS    466    466      15     0.0    1   9.5      66.3    3    0.0
+ 5 EOS    509    509      16     0.0    1   3.0      22.8    1    0.0
+ 6 EOS    995    995      19     0.0    1   1.5       9.8    2    0.0
+ 7 EOS    547    547      17     0.0    1   0.0       8.0    6    0.0
+ 8 EOS    546    546      21     0.0    1   2.8      22.5    2    0.0
+ 9 EOS    816    816      27     0.0    1   2.3      17.4    3    1.2
+10 EOS    901    901      24     0.0    1   1.6      11.6    2    0.0
+
+arm             n  EOS CAP loop* med delp w  EOS w range  med an%  >cMAX  med int%  med pct  >p90  agri/1k  first-word reuse (>corpus p90)
+base n=10      10   10   0    0        546      466-995      0.0    0/10      2.5     19.9     0     3.77     37.6  (5/10)
+base n=4 (Aug)  4    4   0    0        750      652-819      0.0    0/4       1.7     16.5     0     5.98     32.7  (2/4)
+variant F      10    5   5    5        258      200-405     24.5    7/10     19.4     87.5     5     1.22     70.0  (10/10)
+variant G      10    3   7    9        773      803-1362    28.8    8/10     11.0     70.1     4     0.41     41.3  (10/10)
+G @ epoch 1    10    4   6    7        728      721-1166    26.0    9/10      3.3     38.9     2     1.11     51.9  (10/10)
+G + guard      10    6   4    7        848      157-1423     4.4*   3/10      8.1     55.6     1     0.94     42.2  (9/10)
+corpus chapters (n=138)                893-1500 (med 1420)   1.1 (max 8.9)      7.0                            18.3  (p90 29.2)
+```
+
+1. **Base never captures.** 0/10 cap, longest repeated substring 15–27
+   characters, two-word anaphora 0.0 in every sample, same-opening run 1 in
+   every sample. Pooled with the August controls, 0/14. Against G's 7/10 cap
+   Fisher p = 0.0031 (pooled 0/14 vs 7/10, p = 0.00035); against F's 5/10,
+   p = 0.033. This is the contrast the whole series has been assuming and
+   had measured only at n = 4.
+2. **Base is short.** Median 546 words (August n = 4: 750), 466–995, 0/10 at
+   the corpus chapter median of 1420. So the sustain deficit *is* real for
+   the base too — G's EOS stops (803–1362) and G+guard's (median 874) are
+   longer than base's — but base's shortfall is a clean stop at 0.4x target,
+   the adapters' is a capture at 0.5–0.9x.
+3. **Register.** Base: interiority median 2.5 (percentile 19.9), agri
+   3.77/1k, first-person 0 in 9 of 10 — the prompt's "objective physical
+   realism … labor with precision" obeyed; sample #6 ends: *"He adjusted his
+   pack and set off once more, the path ahead uncertain but the purpose
+   clear."* Every adapter arm sits above base on interiority and below it on
+   labour vocabulary, as the fourth/fifth runs found.
+4. **First-word reuse, the post-hoc instrument, with base at n = 10.**
+   Base 37.6, itself above the corpus p90 in 5/10 — so the base's own
+   sentence-opening habit is well above the corpus's, and *variant G (41.3)
+   is at base level on this measure while F (70.0) is not.* Ordering
+   F 70 > ckpt-62 52 > G 41 ≈ base 38 > corpus 18. Still post hoc; now
+   written down in `scripts/first_word_reuse.py` with its boundary rules, so
+   the next arm scores it pre-registered.
+
+### Verdict
+
+**ESTABLISHED, and a retraction.** The capture is introduced by the adapter,
+not delayed by it: base 0/14, every adapter arm ≥ 4/10. The thirteenth run's
+"base's long-context behaviour that the adapter can only delay" is withdrawn
+in place above. What survives from runs 8–13, restated with this control in
+hand:
+
+- The base at this prompt writes 466–995 words and stops cleanly. It does not
+  ladder and does not cycle.
+- Fine-tuning on the chapter branch (F, G) buys 300–500 more words of chapter
+  before a capture the base never enters; more chapter data moves the
+  capture point (258 → 773), not the capture rate (5/10 → 7/10, n.s.).
+- No sampler rule tried (n-gram, opening) removes the capture; each is
+  absorbed at the next level.
+- No exact-repeat probe finds the seed in the weights (runs 8–9), and the
+  epoch count does not change it (run 13).
+
+So the thing the adapter adds that base lacks is not "repeat pressure" and
+not "a stop schedule"; it is whatever makes a 700-word prefix of the
+adapter's own prose a ladder-entry state when a 700-word prefix of base's is
+not. The eighth run's "upstream of the first rung" is still the right
+location, and the free probe it named (opening-distribution entropy at
+sentence boundaries, adapter vs base, on base's own clean text) is the
+instrument that would see it. **That probe is the next free measurement, and
+it costs no generations: teacher-force the 14 base controls through F, G and
+base and compare next-token entropy at every sentence boundary.**
+
+### Next step
+
+1. **Free:** the boundary-entropy probe above, on `gen_base_control.json` +
+   `eval/gen_base_n10_cap2560.json` (14 clean chapter-length texts), three
+   arms (base, F, G). Prediction to register before running: the adapter's
+   sentence-opening distribution at boundaries is lower-entropy than base's on
+   the same prefix, by more on prefixes ≥ 500 words than < 500, and G's is
+   between F's and base's.
+2. **The last training run is held** until (1) says what the adapter is
+   doing at boundaries; if it shows concentration, the corpus question is
+   *which* entries carry the concentrated openings (the sixth run's "He/She
+   + verb" chapter shapes are the candidate), and that is a corpus edit worth
+   the run.
+3. **Six generations remain in the series** (54/60). Reserve them for the
+   brief-branch spot-check of whatever the last training run produces.
+
+Budget this series: **1/2 training runs, 54/60 generations**, ~145
+GPU-minutes this session. Push still blocked on the pod; seven commits since
+`3a57ed7` await the owner.
+
+---
+
+## 2026-09-22 (fifteenth run) — the boundary-entropy probe. Prediction falsified in the opposite direction: the adapters do not concentrate sentence-opening mass, they flatten it, by +1.1 to +1.4 nats over base on every text type, with a +0.5-nat boundary-specific excess
+
+**Free measurement, 0 generations, ~8 GPU-minutes.** Prediction pre-registered
+in `logs/prediction_boundary_entropy.txt` (`a78ef8b`) before the run. Scripts
+`scripts/boundary_entropy.py`, `scripts/analyze_boundary_entropy.py`. Data
+`eval/boundary_entropy.json` (14 base texts), `eval/boundary_entropy_corpus40.json`
+(40 corpus chapters, fixed-seed sample), `eval/boundary_entropy_nb.json` (the 14
+base texts with a paired mid-sentence control). Analyses under `logs/analyze_*`.
+
+### What was measured
+
+Teacher-forcing under the chapter prompt, three arms on the same tokens — base
+(`disable_adapter()`), F, G loaded as two named adapters on one model — at
+every sentence boundary (token starting a new sentence after `. ! ? " ”`):
+Shannon entropy of the next-token distribution, top-1 probability, and log-prob
+of the opening actually written. Paired per boundary by construction. Two text
+sets, because the ninth run showed base-relative measures swing with whose
+manifold the text is on: base's own 14 clean chapter generations (adapter
+off-manifold) and 40 corpus chapter targets (adapter on-manifold, base
+off-manifold). If a sign holds on both, it is not the manifold.
+
+### Result
+
+```
+                                  base      F      G    F-base  G-base   share F<base  share G<base
+14 base texts, 483 boundaries
+  entropy H (nats)               0.916  2.204  2.428   +1.261  +1.429       0.01          0.00
+  top-1 prob                     0.699  0.446  0.416   -0.215  -0.258       0.90          0.92
+  logp(true opening)            -0.413 -1.149 -1.289   -0.541  -0.671       0.92          0.94
+40 corpus chapters, 2802 boundaries
+  entropy H (nats)               2.368  3.641  3.520   +1.151  +1.046       0.00          0.01
+  top-1 prob                     0.392  0.250  0.249   -0.118  -0.123       0.95          0.93
+  logp(true opening)            -3.027 -2.891 -2.813   +0.021  +0.084       0.49          0.46
+
+by prefix length (corpus, F-base / G-base):  0-250 +1.48/+1.25   250-500 +1.20/+1.07   500-750 +1.18/+1.05   750+ +1.05/+0.96
+
+mid-sentence control (14 base texts, 483 word-initial non-boundary positions, paired):
+  arm    boundary H   non-boundary H   boundary excess
+  base      0.916          0.653           +0.263
+  F         2.204          1.582           +0.621
+  G         2.428          1.764           +0.664
+  F-base   +1.261         +0.781           boundary-specific +0.480
+  G-base   +1.429         +0.966           boundary-specific +0.463
+```
+
+Against the prediction:
+
+| prediction | result | |
+|---|---|---|
+| adapter entropy < base at the median boundary | +1.26 / +1.43 nats, share below base 0.01 / 0.00 | **falsified, opposite sign** |
+| gap larger at ≥ 500 words than below | gap *shrinks* with prefix length (+1.5 → +1.0) | falsified |
+| G between F and base | G is above F on base text (+0.15), below F on corpus text (−0.11) | not supported |
+| falsifier: median paired delta ≥ 0 → concentration is not the mechanism | triggered on both text sets | **the concentration reading is dead** |
+
+1. **The adapters flatten the next-token distribution everywhere, and more
+   at sentence boundaries.** Mid-sentence +0.8 / +1.0 nats over base; at
+   boundaries +1.3 / +1.4, a boundary-specific excess of ~0.5 nats in both
+   adapters. Top-1 mass at a boundary 0.70 → 0.42 on base text, 0.39 → 0.25
+   on corpus text.
+2. **It is not the manifold.** The sign and size are the same on the
+   adapter's own training targets as on base's generations. The only
+   quantity that flips is logp(true opening): on base text the adapters are
+   worse at predicting base's openings (−0.5 / −0.7 nats, expected), and on
+   corpus text they are *no better than base* at predicting the corpus's own
+   openings (+0.02 / +0.08, share 0.49 / 0.46). Six passes over each chapter
+   did not teach G the corpus's sentence openings; they spread the mass.
+3. **The eighth run's F2 "boost on control openings" (+2.8 to +9.5 nats) is
+   this, seen from one side.** A flatter distribution raises the log-prob of
+   every low-probability continuation, repeats and controls alike, which is
+   exactly what "the elevation is not repeat-specific" said. There is no
+   concentration to find because there is none.
+4. **Consequence for the ladder, stated as a hypothesis** `[unverified]`: at
+   T = 0.7 the base's boundary distribution has ~0.55 nats and the adapter's
+   ~1.25 (`logs/match_temperature.log`); the sampler is drawing sentence
+   openings from a distribution more than twice as spread. Runs 8–9 found no
+   repeat mass on clean prefixes, so the flattening does not seed a rung
+   directly; the candidate reading is that it walks the text off any model's
+   manifold faster, into the region where the eighth run's self-conditioning
+   takes over. That reading has a cheap test, and the sixteenth run below is
+   it.
+
+### Verdict
+
+**ESTABLISHED (falsification).** The adapter's contribution at sentence
+boundaries is a +1.1–1.4 nat entropy increase relative to base, present on
+both text manifolds, larger at boundaries than mid-sentence, and not
+accompanied by any better fit to the corpus's openings. The "concentration
+upstream of the first rung" hypothesis carried since the eighth run is
+withdrawn.
+
+### Next step
+
+The entropy-matched temperature test, pre-registered in
+`logs/prediction_entropy_matched_T.txt` and run as the sixteenth entry:
+sample variant G at the T* where its boundary entropy on the base texts
+equals base's at 0.7. `scripts/match_temperature.py` gives **T* = 0.4**
+(G 0.484 nats at 0.40, 0.617 at 0.45; base 0.548 at 0.70).
+
+---
+
+## 2026-09-22 (sixteenth run) — variant G at the entropy-matched temperature T* = 0.4. 6/6 cap, cycles close after 62–204 words. The flattening is not the ladder's cause; it is what delays the ladder. The adapter's low-temperature path is a cycle
+
+**Adapter:** variant G, unchanged. **Six chapter samples (series total 60/60 —
+the generation budget is spent), 0 training runs, ~17 GPU-minutes.**
+Prediction pre-registered in `logs/prediction_entropy_matched_T.txt`
+(`b7a8c1b`); T* = 0.4 from `scripts/match_temperature.py` (`eval/match_temperature.json`),
+committed before sampling. `scripts/gen_opening_guard.py --window 0
+--temperature 0.4`, otherwise the recorded sampler (min_p 0.05, repetition
+penalty 1.05, cap 2560). Seeds 20260827–32, paired with G's #1–6 at T = 0.7.
+Data `eval/gen_v7_variantG_T04.json`; run log `logs/gen_variantG_T04_run.log`;
+scorer `logs/score_G_T04_sixteenth.log`.
+
+### Falsifiers
+
+```
+F1  system sha ed40b81d…, prefix 54 tokens                    pass
+F2  adapter live, max |logit delta| = 15.500                   pass
+F3  seed-paired with G @ 0.7 (same host, same weights)         by construction
+```
+
+### Result
+
+```
+ i fin  raw w delp w span ch  anaph%  run  int%  agri   novel words before the cycle   G @ 0.7, same seed
+ 1 CAP   2367    142    5952    33.3    4   0.0     0    143                            CAP, novel 2062 (ordinal ladder)
+ 2 CAP   2141    100    5123    16.7    2  28.6     0    100                            CAP, novel  885
+ 3 CAP   2240    159    4818   100.0   11   0.0     0    159                            CAP, novel  735
+ 4 CAP   1697     71    4066     0.0    1   0.0     0     71                            CAP, novel  593
+ 5 CAP   2132    204    5714    55.0   11   9.5     0    204                            CAP, novel  788
+ 6 CAP   1743     62    4554     0.0    1   0.0     0     62                            CAP, novel  604
+
+arm                 n  EOS CAP  med novel w   novel range   med an%  first-word reuse
+G @ T=0.4           6    0   6        121        62-204      25.0     68.8  (5/6 > corpus p90)
+G @ T=0.7 (same 6)  6    0   6        762       593-2062     ~30      41   (median of the 10)
+base @ T=0.7       10   10   0        546       466-995       0.0     37.6
+```
+
+Against the prediction:
+
+| prediction | result | |
+|---|---|---|
+| if flattening is the mechanism: caps ≤ 2/6 | 6/6 | **falsified** |
+| falsifier: caps ≥ 4/6 → flattening is not the mechanism | 6/6 | **triggered** |
+| first-word reuse < 41 | 68.8 | falsified, and back at F's level |
+
+1. **Matching the adapter's boundary entropy to base's makes the capture
+   ~6x faster, not slower.** Paired by seed, every sample's cycle closes
+   earlier at 0.4 than at 0.7 (62–204 vs 593–2062 words; 6/6, sign test
+   p = 0.03). The cycles are short and verbatim from the outset: #6 is
+   "He looked up again. … He looked down again. …" from word 62; #4 from
+   word 71.
+2. **So the +1.2 nats is protective.** The adapter's *mode* at a boundary —
+   what it would say greedily — is already the rung; the spread the
+   fifteenth run measured is the sampling noise that keeps the text off that
+   path for a few hundred words. Reduce the noise and the path is taken at
+   once. This is why runs 8–9 found no repeat mass on clean prefixes: the
+   rung is not a high-probability *repeat*, it is the highest-probability
+   *shape* ("He looked …", "She thought that …", "I'm helping you see
+   …") — the seventh/tenth runs' fuzzy ladder — and the exact-repeat probe
+   measured the wrong thing.
+3. **Base at T = 0.7 never takes such a path** (0/14), with a boundary
+   distribution that is *sharper* than the adapter's at 0.4 (0.55 vs 0.48
+   nats median). Sharpness is not the variable; what the sharp distribution
+   is centred on is.
+4. **Register at T = 0.4:** interiority 0.0, agri 0.00, first-word reuse
+   68.8 (F's level, up from G's 41). The prose collapses into the ladder
+   before any register is established.
+
+### Verdict
+
+**WORSE (6/6 vs the same seeds' 6/6 cap at 0.7, but at one-sixth the
+length), and ESTABLISHED as mechanism:** the adapter's most probable
+continuation at a sentence boundary is a rung. Temperature is not a lever
+downward; whether it is one *upward* (0.8–0.9: more noise, later capture,
+at the cost of coherence) is untested and is the obvious cheap question the
+budget no longer covers.
+
+Across the sixteen runs the picture is now closed enough to state:
+
+- Base: 466–995 words, clean EOS, 0/14 captures, obeys the register prompt.
+- Any adapter from this corpus at the chapter prompt: a mode that is a
+  ladder, reached within ~100 words greedily and within ~250 (F) to ~770
+  (G) words at T = 0.7; nothing sampler-side removes it (n-gram, opening
+  guard, temperature down), nothing exposure-side changes it (epoch 1 =
+  epoch 2), and more chapter data only moves the entry point.
+- The brief branch (33–96 words, 3/3 EOS, corpus band) is unaffected and
+  remains the production path.
+
+### Next step
+
+1. **The last training run is the only budget left, and the evidence now
+   says what it should test.** Not the branch mix, not exposure, not
+   epochs: the *mode*. The corpus's chapter targets have a first-word reuse
+   of 18.3 (p90 29.2) and the adapter's is 41–70 — the adapter has learned
+   a sentence-shape prior the corpus does not have. Two candidates, one run:
+   (a) **drop the brief branch entirely** (chapter-only, 138 x 3, same
+   hyperparameters) — tests whether the 564 short, dialogue-heavy,
+   "He said / She said"-shaped briefs are the source of the shape prior
+   (brief targets: median 52 words, dialogue-dense; the ladders are built of
+   exactly their sentence forms); (b) LoRA on the MLP projections as well
+   as attention — off the table, it is a HARD REQ. **(a)** is the run.
+   Prediction to register before it: chapter-only first-word reuse < 41
+   and cap-loops < 7/10 at T = 0.7; brief-branch behaviour will regress (it
+   is the branch being removed), so this is a diagnostic run, not a ship
+   candidate, and the charter's brief spot-check is expected to fail.
+2. **Free, before that run:** first-word reuse on the brief targets
+   themselves (window 4 across the 564), to see whether the shape prior is
+   visible in the data the adapter got. If the brief branch scores ≥ 40,
+   (a) is well-motivated; if it scores near the chapter branch's 18, the
+   prior is not in the data and (a) is weaker.
+3. **Engine:** unchanged advice. Nothing here was sampled at the engine's
+   settings; the engine's `repeat_penalty 1.1` and rolling temperature
+   0.55–0.78 sit in a range this series has now measured at both ends (0.4:
+   worse; 0.7: as recorded).
+
+Budget this series: **1/2 training runs, 60/60 generations** — the
+generation budget is spent. ~184 GPU-minutes this session. Push still
+blocked on the pod.
+
+**Addendum (same session, free): first-word reuse in the training data
+itself** (`logs/first_word_reuse_brief_targets.log`, window 4, same rules).
+
+```
+set                          n   scorable  median   p90   share > chapter p90 (29.2)
+brief targets              564      230     22.2   57.1        0.37
+brief targets, blocks of 10 57       57     24.5   42.3        0.39
+chapter targets            138      138     18.3   29.2        0.09
+```
+
+The brief branch's median is close to the chapter branch's, but its tail is
+not: 37% of scorable briefs exceed the chapter branch's p90, and the brief p90
+(57) is where F's generations sit (median 70) and above G's (41). The shape
+prior is visible in the data, in the tail of the brief branch. Next step 1(a)
+— chapter-only — is motivated; a gentler variant that keeps the production
+branch, **dropping only the briefs above 29.2 first-word reuse (~85 of 230
+scorable)**, is the version that would not regress the brief spot-check by
+construction, and is the better candidate for the single remaining run.
+
+---
+
+## 2026-09-22 (seventeenth run) — variant H, the brief-tail filter. The sentence-opening prior does not move: H = G to the decimal on every static axis, on both text types. The prior is not in the brief tail, and the corpus itself does not carry it — it is made by the tuning
+
+**Adapter under test:** `/workspace/drift_sft_out_v8/adapter` (variant H), new.
+**One training run (2 of 2 — the training budget is now spent), 0 generations
+(60/60 — spent), ~61 GPU-minutes training + ~30 GPU-minutes of static probes.**
+Prediction pre-registered in `logs/prediction_variantH.txt` (`59c8197`) before
+training, against base/F/G numbers measured the same session. Scripts:
+`scripts/build_corpus_v2_4_briefclean.py`, `scripts/train_drift_sft_v8.py`
+(`781308d`), `scripts/boundary_mode.py`, `scripts/target_nll.py` (`59c8197`).
+Data: `eval/boundary_mode_H.json`, `eval/boundary_mode_corpus40.json`,
+`eval/target_nll.json`, `eval/corpus_v2_4_dropped.json`; logs
+`logs/boundary_mode_*_run.log`, `logs/target_nll_run.log`,
+`logs/build_corpus_v2_4.log`; training log `/workspace/drift_sft_v8_train.log`
+(pod only, like G's). Checkpoints 28/56/84/112 kept.
+
+### The change made
+
+One: the corpus. `final_training_corpus_v2_4_briefclean.json` (sha256
+`b092e24d5cf9a0fd`, 893 entries) is v2_3_ch3x minus the 85 brief entries whose
+target first-word reuse (window 4, `first_word_reuse.reuse`, raw target text)
+exceeds the chapter branch's p90 of 29.2 — exactly the tail the sixteenth
+run's addendum located (37% of the 230 scorable briefs). 414 chapter + 479
+brief; the kept briefs' maximum reuse is 28.6, share above p90 0.00 by
+construction. Every hyperparameter G's; `save_steps` 28 to keep the half-epoch
+cadence. Pre-flight re-asserted: max templated entry 2176 tokens, 0 truncated.
+112 steps, 60.8 min, peak 13.16 GB, final train loss 2.461 (G 2.433; H runs
+~0.03 nats above G along the whole curve — epoch means 2.555/2.368 vs
+2.529/2.338 — the dropped briefs were the cheapest tokens in the corpus, see
+the NLL table).
+
+### The instrument, and its calibration before training
+
+The generation budget being spent, this run was designed to be read
+statically. `scripts/boundary_mode.py` teacher-forces fixed clean text under
+the chapter prompt and records, at every sentence boundary, the **top-1 next
+token** — the opening the model would take greedily — for every arm at the
+same position. Two text types as in the fifteenth run: the 14 base-written
+chapters (483 boundaries) and 40 corpus chapter targets (2802 boundaries).
+Aggregates: `mode_reuse4` (greedy opening equals one of the previous 4
+boundaries' — the first-word-reuse instrument applied to the mode),
+`top3_share`, distinct openings per 100, `pronoun` (greedy opening in he / she
+/ I / it / they / we / you), and the boundary entropy (replicating the
+fifteenth run).
+
+Calibration on base/F/G, run and committed before the prediction was written:
+
+```
+base text (14 texts, 483 boundaries)
+arm   mode_reuse4  top3_share  distinct/100  pronoun  median_H  top-5 greedy openings
+base      56.9        66.5         10.8        31.7     0.92    The:191 He:91  She:39 A:23  “:17
+F         57.4        65.6         10.4        45.8     2.20    He:133  The:130 She:54 “:18 It:16
+G         59.9        68.5          8.9        49.9     2.43    He:147  The:128 She:56 “:19 A:17
+
+corpus text (40 chapters, 2802 boundaries)
+base      56.1        46.4          5.2        53.7     2.37    The:492 He:434 I:373 She:365 But:143
+F         58.7        47.9          5.2        62.3     3.64    He:585  She:380 I:378 The:240 They:165
+G         58.7        46.4          5.1        61.5     3.52    He:586  She:363 I:352 The:268 They:175
+```
+
+Two things the calibration settled before any budget was spent. First, on
+fixed text the adapters do **not** concentrate the mode: reuse, top-3 share
+and distinct count are flat across arms (base's own greedy opening is "The /
+He / She" two-thirds of the time). What the adapters change is *which*
+opening is the mode — the pronoun share, +14 to +18 points on base text and
++8 on corpus text — the "He looked … / She thought …" shape the sixteenth
+run named. Second, **F ≈ G on that axis on both text types** (45.8 / 49.9;
+62.3 / 61.5): two adapters that share the brief branch and differ by 3x in
+chapter weighting land in the same place. That was the strongest available
+evidence for the brief-tail hypothesis, and the pronoun share became the
+primary prediction: if the tail carries the prior, H closes at least half the
+G-to-base gap (≤ 41 on base text, ≤ 58 on corpus text); falsifier H ≥ 47 on
+base text.
+
+### Falsifiers
+
+```
+F1  system sha ed40b81d…, chapter prefix 54 tokens                        pass (asserted in both probes)
+F2  every adapter live and distinct from base at the first boundary       pass (asserted per text)
+F3  H adapter sha 16cba762… != G 048c043e… != F 41d93976…                 pass
+F4  base/F/G rows reproduced to the decimal in the H run (instrument       pass
+      stability: same texts, same positions, same weights)
+F5  filter took effect — H's NLL on the DROPPED briefs above G's           pass on direction (+0.078),
+                                                                            below the registered 0.10
+```
+
+### Result
+
+```
+base text (483 boundaries)
+arm   mode_reuse4  top3_share  distinct/100  pronoun  median_H  top1p   top-5 greedy openings
+G         59.9        68.5          8.9        49.9     2.43    0.42   He:147 The:128 She:56 “:19 A:17
+H         58.8        67.3          8.9        49.7     2.43    0.41   He:148 The:120 She:57 A:25 “:19
+
+corpus text (2802 boundaries)
+G         58.7        46.4          5.1        61.5     3.52    0.25   He:586 She:363 I:352 The:268 They:175
+H         58.9        47.5          5.0        62.2     3.52    0.25   He:618 She:360 I:353 The:253 They:167
+
+teacher-forced NLL on targets (n = 20 per set, seed 20260922), mean / median
+set       base           G              H              H - G
+kept      4.008 / 3.573  2.088 / 2.046  2.114 / 2.062  +0.026
+dropped   3.579 / 3.418  1.826 / 1.692  1.904 / 1.808  +0.078
+chapter   2.794 / 2.803  2.484 / 2.483  2.491 / 2.495  +0.007
+```
+
+Against the prediction:
+
+| prediction | result | |
+|---|---|---|
+| P1 pronoun share, base text ≤ 41 (G 49.9) | 49.7 | **falsified**; falsifier (≥ 47) triggered |
+| P1 pronoun share, corpus text ≤ 58 (G 61.5) | 62.2 | **falsified** |
+| P2 mode_reuse4 ≤ 57.5 (G 59.9) | 58.8 | inside the F-vs-G noise band; no claim |
+| P3 kept-brief NLL within 0.05 of G | +0.026 | holds |
+| P3 dropped-brief NLL ≥ 0.10 above G | +0.078 | direction right, threshold missed |
+| P4 boundary entropy ≈ G | 2.43 / 3.52 = G to two decimals | as expected |
+
+1. **Removing the high-reuse briefs changed nothing the probe can see.** On
+   both text types H's greedy-opening distribution is G's: the same five
+   openings in the same order, the pronoun share within 0.7 points, the
+   boundary entropy identical to two decimals. Two adapters trained on
+   corpora that differ by 85 entries (9% of entries, ~4% of assistant
+   tokens) are, at the sentence boundary, the same model. The brief tail is
+   not where the prior lives.
+2. **The prior is not in the corpus at all.** A free text statistic run after
+   the falsification (pronoun-first sentences, same sentence splitter):
+
+   ```
+   set                       sentences   pronoun-first %
+   chapter targets (138)        13393         29.0
+   kept briefs (479)             2417         36.5
+   dropped briefs (85)            679         50.2
+   base generations n=10          420         27.9
+   G generations n=10            1982         44.6
+   F generations (Aug)           1560         91.4
+   ```
+
+   The chapter branch — 88% of the assistant tokens — opens sentences with
+   a pronoun at base's own rate (29.0 vs 27.9). The adapters' greedy mode
+   on base text is 50% pronoun, and G's sampled text is 44.6% before the
+   ladder takes it to F's 91. No part of the data the adapter kept is at
+   50; the one part that was (the dropped tail, 50.2) was removed and the
+   mode did not move. **The sentence-opening prior is produced by the
+   tuning, not copied from the data.** This is the fifth run's finding
+   ("the amplification is much larger than interiority") reached from the
+   other side: SFT on this corpus over-produces the character-subject
+   sentence relative to every slice of the corpus.
+3. **The brief branch is retained** (static proxy): H's NLL on the kept
+   briefs is 0.026 nats above G's, on chapters 0.007 — both inside the
+   registered band. H also predicts the 85 briefs it never saw only 0.078
+   nats worse than G, which trained on them twice: they are the most
+   predictable text in the corpus under every arm including base (3.58 vs
+   4.01 for the kept briefs), i.e. formulaic, and their content is
+   recoverable from the rest. That is why the filter had nothing to remove.
+4. **Not a ship candidate and not a regression.** H is G with 85 fewer
+   training examples and the same behaviour on every axis measured. The
+   charter's production verdict (3 brief generations) cannot be issued at
+   60/60 and is not needed: nothing in H is different from G to ship.
+
+### Verdict
+
+**ESTABLISHED (prediction falsified): the sentence-shape prior is not
+carried by the brief branch's high-reuse tail, nor by the corpus. Variant H
+is G on every static axis (CLEAN on the brief-retention proxy, no change on
+the targeted axis).** Across seventeen runs, with both budgets spent:
+
+- Nothing sampler-side removes the ladder (n-gram guard, opening guard,
+  temperature down — runs 10, 12, 16).
+- Nothing exposure-side changes its entry (epoch 1 = epoch 2, run 13).
+- More chapter data moves the entry point from ~260 to ~770 words (run 11)
+  without changing the mode.
+- Filtering the data's own high-reuse tail does not touch the mode (this
+  run), and the mode is above every slice of the data (this run, item 2).
+- Base never ladders (0/14) and obeys the register prompt.
+
+The remaining lever is the tuning recipe itself, not the corpus: the LoRA
+places a sentence-opening prior at ~50% pronoun that no part of the data has,
+and it is already in place at epoch 1. Which part of the recipe — rank,
+learning rate, the attention-only target set (a HARD REQ), or the SFT
+objective on chapter-length targets — is the question the budget no longer
+covers.
+
+### Next step
+
+1. **Free, this session:** the pronoun mode as a function of training step on
+   H's checkpoints 28/56/84/112 (static, same probe). If it is at ~50 by step
+   28 (a quarter of training), the prior forms in the first few hundred
+   gradient steps and a lower learning rate or early stop is a candidate
+   lever; if it climbs across training, exposure is. Result appended below.
+2. **Owner decision — both budgets are spent.** If the series is extended,
+   the cheapest sampled test is 10 chapter generations from H seed-paired
+   with G's (prediction: indistinguishable — cap-loops 7/10, first-word
+   reuse ~41; the static result predicts no difference), which would also
+   confirm that the static probe reads the sampled behaviour. The cheapest
+   training test is a recipe change, one variable, on v2_3_ch3x: learning
+   rate 2e-4 → 5e-5, scored first on the boundary-mode probe (free) before
+   any sampling.
+3. **Engine:** unchanged advice; variant F stays the production adapter for
+   the brief prompt. H is not to be deployed — it is G.
+
+Budget this series: **2/2 training runs, 60/60 generations** — both spent.
+~91 GPU-minutes this session. Push still blocked on the pod (no GitHub
+credentials); every commit is local on `claude/new-session-z1flke`.
+
+**Addendum (same session, free): the pronoun mode across H's checkpoints**
+(`logs/boundary_mode_H_checkpoints_run.log`, `eval/boundary_mode_H_checkpoints.json`;
+base text, 483 boundaries, same probe; base/F/G rows reproduced again).
+
+```
+arm       step   epoch  mode_reuse4  top3_share  distinct/100  pronoun  median_H  top1p
+base         -      -       56.9        66.5         10.8        31.7     0.92    0.70
+H28         28   0.50       56.3        63.6         10.4        43.3     2.12    0.45
+H56         56   1.00       58.4        65.2          9.7        44.9     2.38    0.42
+H84         84   1.50       58.2        66.0          9.1        47.8     2.44    0.41
+H (112)    112   2.00       58.8        67.3          8.9        49.7     2.43    0.41
+G (124)    124   2.00       59.9        68.5          8.9        49.9     2.43    0.42
+```
+
+Two-thirds of the shift (+11.6 of the final +18.0 points) is in place by step
+28 — the first half-epoch, of which the first ~6 steps are warmup — and the
+boundary entropy has already risen +1.2 of its final +1.5 nats. The remaining
+84 steps add +6.4 points at a steady ~2 points per 28 steps. So the prior is
+formed early and fast, then reinforced slowly by exposure; step 28's
+`mode_reuse4` and distinct count are still base's. This narrows next step 2:
+the recipe lever to test first is the learning rate (2e-4 → 5e-5, same
+steps), scored on this probe at each half-epoch checkpoint before any
+sampling; an early stop alone would not do it, since the half-epoch adapter
+already carries most of the shift. The half-epoch checkpoint's entropy (2.12)
+is also the closest any adapter has come to base's boundary distribution, at
+a pronoun share still 12 points above base — the two do not move together,
+which is the fifteenth and sixteenth runs' conclusion again.
+
+**Addendum (same day, free, after a session restart): what the tuning sharpens
+onto** (`scripts/opening_share.py`, `logs/opening_share.log`; the same sentence
+splitter and first-word rule as `first_word_reuse.py`, now with the top
+openings per slice; the sets differ slightly from item 2 above — base's 14
+texts, and F/G generations de-looped — the pronoun shares agree in direction).
+
+```
+set                        sentences  pronoun%   top openings
+chapter targets (138)         13393     29.0     he 8%   the 7%  i 7%  she 5%  but 4%
+kept briefs (479)              2417     36.5     he 14%  she 13% the 4% i 4%
+dropped briefs (85)             679     50.2     he 19%  she 17% i 7%  the 5%
+corpus, all (weighted)        16489     31.0
+base gens (14)                  624     26.8     the 29% he 16%  she 6% a 6%
+G gens, de-looped (10)          990     51.4     i 29%   she 12% he 7%
+F gens, de-looped (10)          396     84.3     he 51%  i 15%   she 14%
+```
+
+The slices differ in their pronoun *share* (29 → 36 → 50) but not in their
+*plurality opening*: `he` is the single most common sentence opening in the
+chapter targets, in the kept briefs and in the dropped briefs alike, at only
+8–19%. Base's own plurality is `the` (29%), and base's greedy mode on its own
+text is `the` (191 of 483). After tuning, every arm's greedy mode is `he`
+(133–148 of 483) — the corpus's plurality, not its distribution. That is a
+candidate account of item 2 ("made by the tuning, not copied from the data"):
+the objective moves the boundary argmax to the corpus's most common opening
+class, and since that class is the same in every slice, no slice removal can
+move it; only a corpus whose plurality opening is not a character subject, or a
+recipe that carries a distribution rather than an argmax (next step 2), could.
+[Interpretive; the measurement is the table, the mechanism is the reading.]

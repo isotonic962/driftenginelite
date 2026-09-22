@@ -1,0 +1,15 @@
+ b fin  raw w delp w  span  band  >   anaph%  run  int%   user
+ 1 EOS     48     48    12  True False     0.0    1  25.0   Einar has asked Elsa whether she is all right.
+ 2 EOS     25     25     6  True False     0.0    1   0.0   Astrid has just told Bertil something difficult.
+ 3 EOS     41     41    16  True False     0.0    1   0.0   Sigrid has called Lars to come to bed.
+
+recorded variant F (sixth run, same briefs, same seeds): B1 EOS 33w, B2 EOS 57w, B3 EOS 96w | anaph 0.0, max run 2, int% 0.0, 3/3 in band
+
+--- brief 1 (Einar has asked Elsa whether she is all right.) ---
+"Are you all right?" Einar asked. "I don't know," she said. She didn't know what she was feeling. She felt confused, but not in a bad way. It had been so long since anything like this had happened to her that she was at a loss for words.
+
+--- brief 2 (Astrid has just told Bertil something difficult.) ---
+Bertil said nothing for a moment. Then he said, "I'm sorry to hear that." He had never been able to say much more than that.
+
+--- brief 3 (Sigrid has called Lars to come to bed.) ---
+Lars had not been able to sleep. He had lain awake all night, waiting for her to call him. She called him now. He got up. He did not want to be with her. But he wanted to be with her.
