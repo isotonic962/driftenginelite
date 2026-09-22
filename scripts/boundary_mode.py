@@ -20,18 +20,29 @@ Per-arm aggregates (the pre-registered instruments):
   pronoun_share share of greedy openings in {he she i it they we you}
   median_H      median boundary entropy (replicates the fifteenth run)
 
-Usage: boundary_mode.py [H=/path/to/adapter]   (H is optional; base/F/G always)
+Usage: boundary_mode.py [H=/path/to/adapter] [corpus:40]   (H optional; base/F/G always;
+       corpus:N switches the texts to N corpus chapter targets, output _corpusN.json)
 Output: eval/boundary_mode.json (per-boundary records) + printed table."""
 import json, re, sys, time, hashlib, collections, statistics as st
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 from gen_guarded import BASE, SYSTEM, USER, SYSTEM_SHA
 assert hashlib.sha256(SYSTEM.encode()).hexdigest() == SYSTEM_SHA
 ADAPTERS = {"F": "/workspace/drift_sft_out_v6/adapter", "G": "/workspace/drift_sft_out_v7/adapter"}
-for a in sys.argv[1:]:
-    k, p = a.split("=", 1); ADAPTERS[k] = p
 OUT = "/workspace/driftenginelite/eval/boundary_mode.json"
 texts = [(f"aug{r['i']}", r["text"]) for r in json.load(open("/workspace/gen_base_control.json"))["results"]] + \
         [(f"sep{r['i']}", r["text"]) for r in json.load(open("/workspace/driftenginelite/eval/gen_base_n10_cap2560.json"))["results"]]
+for a in sys.argv[1:]:
+    if a.startswith("corpus:"):
+        # second text type, as in the fifteenth run: N corpus chapter targets, same fixed-seed sample
+        import random
+        N = int(a.split(":")[1])
+        corpus = json.load(open("/workspace/final_training_corpus_v2_2_bq.json"))
+        ch = [(e["id"], e["messages"][2]["content"]) for e in corpus if e["messages"][1]["content"].strip() == "Write the next chapter."]
+        random.Random(20260922).shuffle(ch)
+        texts = ch[:N]
+        OUT = f"/workspace/driftenginelite/eval/boundary_mode_corpus{N}.json"
+        continue
+    k, p = a.split("=", 1); ADAPTERS[k] = p
 PRON = {"he", "she", "i", "it", "they", "we", "you"}
 
 import torch

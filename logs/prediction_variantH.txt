@@ -1,0 +1,17 @@
+2026-09-22T03:20Z  pre-registered BEFORE training variant H (the last training run, 2/2)
+Finding it follows: the sixteenth run's addendum -- the sentence-shape prior is visible in the brief branch's tail (37% of scorable brief targets above the chapter p90 first-word reuse of 29.2; brief p90 57 = variant F's generation level). The boundary-MODE probe (scripts/boundary_mode.py, static, run today on base/F/G before this was written) finds the adapters' consistent signature at sentence boundaries of fixed text is WHAT the greedy opening is, not how concentrated it is:
+    pronoun-opening share (He/She/I/It/They/We/You), base text (14 texts, 483 boundaries):  base 31.7  F 45.8  G 49.9
+    same, corpus text (40 chapters, 2802 boundaries):                                        base 53.7  F 62.3  G 61.5
+    mode_reuse4 (greedy opening equals one of the previous 4):  base text 56.9/57.4/59.9;  corpus 56.1/58.7/58.7  (small)
+    top3 share and distinct/100: flat across arms on both text types.
+F ~ G on the pronoun axis on both text types: the two adapters share the brief branch and differ only in chapter weighting -- consistent with the brief branch setting the prior.
+Intervention: corpus v2_4_briefclean = v2_3_ch3x minus the 85 briefs with target first-word reuse > 29.2 (893 = 414 chapter + 479 brief; sha b092e24d5cf9a0fd). Every hyperparameter G's. One change.
+Predictions (all static; the generation budget is 60/60 and no sample is drawn):
+  P1 (primary) if the brief tail carries the shape prior, H's pronoun-opening share closes at least half the G-base gap: base text <= 41 (G 49.9, base 31.7); corpus text <= 58 (G 61.5, base 53.7).
+     Falsifier: H >= 47 on base text (within 3 of G) -> the high-reuse briefs are NOT the source of the prior; the prior sits in the retained data or in the tuning itself.
+  P2 (secondary, descriptive) mode_reuse4 on base text <= 57.5 (G 59.9); F-vs-G already differ by 2.5 here so a move inside 3 points is noise-scale.
+  P3 (brief-branch proxy, scripts/target_nll.py, n=20 per set, seed 20260922) H's mean NLL on KEPT briefs within 0.05 nats of G's; H's NLL on DROPPED briefs exceeds G's by >= 0.10 (the filter took effect -- H never saw them). If kept-brief NLL rises > 0.10 the brief branch is visibly changed and the spot-check must be sampled before any ship claim.
+  P4 (recorded, not predicted) boundary entropy: expected ~ G's (+1.1-1.4 nats over base); it is not the target.
+Verdict rule: IMPROVED-on-axis only if P1 holds on both text types AND P3 holds. The charter's production verdict (3 brief generations) is deferred until the owner resets the generation budget; this run is a mechanism test.
+Caveat on the instrument: the mode is measured on fixed text; the ladder is self-conditioned, so the probe can under-read a real effect. A move on the probe motivates the sampled test when budget returns; no move says the sampled test is unlikely to show one.
+Cost: 1 training run (2/2, the series budget), 0 generations, ~60 GPU-minutes.
