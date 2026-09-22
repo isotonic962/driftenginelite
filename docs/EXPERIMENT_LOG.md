@@ -1971,3 +1971,145 @@ GPU-minutes this session. **Push is blocked on this pod** (no GitHub
 credential: `could not read Username for 'https://github.com'`); the tenth,
 eleventh and twelfth runs are committed locally on `claude/new-session-z1flke`
 and need the owner to push.
+
+---
+
+## 2026-09-22 (thirteenth run) — checkpoint-62, variant G at epoch 1. The capture and the sustain are both already there at one epoch; the epoch count is not the lever, and a 1-epoch retrain is dead before it is paid for
+
+**Adapter under test:** `/workspace/drift_sft_out_v7/checkpoint-62` (variant G,
+epoch 1.0 of 2, step 62 of 124; `adapter_model.safetensors` sha `756273cf…`,
+distinct from the final `048c043e…`). **Ten chapter samples (series total
+44/60), 0 training runs, no briefs (a checkpoint is not a ship candidate),
+~24 GPU-minutes.** Prediction pre-registered and committed before sampling in
+`logs/prediction_ckpt62.txt` (`c3f7c2e`). Data `eval/gen_v7_ckpt62.json`; run
+log `logs/gen_ckpt62_run.log`; scorer `logs/score_ckpt62_thirteenth.log`.
+`scripts/gen_variant.py` unmodified, unguarded, same seeds.
+
+### The question
+
+Six passes over each chapter (3 copies x 2 epochs) — does exposure strengthen
+the capture, so that the last training run should be 1 epoch on v2_3?
+
+### Falsifiers
+
+```
+F1  system sha ed40b81d…, prefix 54 tokens                          pass
+F2  adapter live, max |logit delta| = 15.500                         pass*
+F3  weights differ from the final adapter: sha differs, and the
+    seed-paired sample #1 shares 0 words of prefix with G's #1        pass
+```
+
+*F2 reads the same 15.500 as the final adapter. That is a bf16 coincidence at
+one prompt position (step 0.125 at that magnitude), not shared weights — F3 is
+what rules the latter out, and it is the check to run whenever F2 repeats a
+number.
+
+### Result
+
+```
+ i fin  raw w delp w span ch  anaph%  run  int% int pct@W agri  1p/1k
+ 1 CAP   2331    682    6130    36.4   16  41.8     100.0    2    0.0
+ 2 CAP   2180   1090    4904    31.5   12   1.8      10.5    0   22.2
+ 3 EOS    721    721     188     7.0    2  25.0      98.6    4    0.0
+ 4 EOS    837    837     118    13.4    3   1.0       7.2    1   35.5
+ 5 EOS   1166   1166      67    15.2    7   7.0      52.2    1   40.4
+ 6 CAP   2265    221    5725    93.3   27   9.7      65.2    0  128.3
+ 7 EOS    900    593    1504    10.7    3   0.0       7.2    0   46.5
+ 8 CAP   1286     32    3680    25.0    2   0.0      43.1    0   93.8
+ 9 CAP   1981    734    5647    27.1   11   1.0       8.3    0   57.9
+10 CAP   2138    939    5951    46.8   24   4.8      34.8    0   51.1
+
+arm             n  EOS CAP loop* med delp w  EOS w range  med an%  >cMAX  med int%  med pct  >p90  agri/1k  first-word reuse
+variant F      10    5   5    5        258      200-405     24.5    7/10     19.4     87.5     5     1.22     70.0
+G @ epoch 1    10    4   6    7        728      721-1166    26.0    9/10      3.3     38.9     2     1.11     51.9
+G @ epoch 2    10    3   7    9        773      803-1362    28.8    8/10     11.0     70.1     4     0.41     41.3
+base            4    4   0    0        750      652-819      0.0    0/4       1.7     16.5     0     5.98     32.7
+```
+
+Against the pre-registered prediction:
+
+| prediction | result | |
+|---|---|---|
+| cap-loops 5–7/10 | 6/10 | met |
+| de-looped median 400–700 (between F and G) | 728 | missed high — it is G's number, not halfway |
+| falsifier for a 1-epoch run: caps ≥ 7/10 | 6/10 vs G's 7/10, Fisher p = 1.0 | not triggered, and not distinguishable |
+| "the run to make": caps ≤ 3/10 and median ≥ 600 | 6/10 | **not met** |
+
+1. **Sustain is bought by the first epoch.** De-looped median 728 vs 773 at
+   epoch 2 (two-sided p = 0.36); EOS lengths 721–1166 vs 803–1362. Every
+   chapter-length figure the eleventh run reported is already present at
+   step 62.
+2. **The capture is bought by the first epoch too.** Cap 6/10 vs 7/10, EOS
+   4/10 vs 3/10, anaphora 26.0 vs 28.8, 9/10 vs 8/10 past the corpus max.
+   Nothing here moves between epoch 1 and 2. (#8 caps after 32 novel words
+   — the shortest pre-capture prefix any G arm has produced — and #6 after
+   221, so the epoch-1 checkpoint has the *wider* spread, if anything.)
+3. **First-word reuse 51.9, between F (70.0) and G (41.3).** The one axis
+   that appears to move with exposure moves in the direction of *less*
+   ladder with more training, not more. `[post-hoc instrument, third
+   comparison; a pre-registered replication is owed before it carries
+   weight]`
+4. **Register, n.s.:** interiority median 3.3, percentile 38.9 — below the
+   corpus median (7.0) and the lowest of any adapter arm; agri 1.11/1k.
+
+### Prose
+
+**#5 (1166 w, EOS)**, ending — the exit-A signature, with the seventh run's
+"Goodnight" cadence:
+
+> 'You're not going anywhere. I'm going to get the police.' 'Oh, you're going
+> to get the police. I'm not afraid of the police. I'm not afraid of anyone.
+> I'm going to leave. I'm going to go home now. Goodnight. Goodnight, doctor.
+> I'm not afraid of you. I'm not afraid of anyone. Goodnight. Goodnight.
+> Goodnight.'
+
+**#3 (721 w, EOS)**, ending — a single sentence repeated four times, then stop:
+
+> She smiled as she thought about how much she would miss him when he was old
+> enough to leave home. She thought about how much she would miss him when he
+> was old enough to leave home. The mother smiled as she thought about how
+> much she would miss him when he was old enough to leave home. The mother
+> smiled as she thought about how much she would miss him when he was old
+> enough to leave home.
+
+### Verdict
+
+**ESTABLISHED: the epoch count is not the lever.** Epoch 1 and epoch 2 of
+variant G are indistinguishable on capture rate, pre-capture length, EOS
+length, and two-word anaphora (every p ≥ 0.36). The eleventh run's candidate
+(a) — "1 epoch on v2_3" — would reproduce a checkpoint that is already on
+disk, and is withdrawn. The last training run stays unspent.
+
+What this adds to the picture of runs 11–12: the chapter-branch upweight
+buys its sustain gain within the first 62 steps and adds nothing after; the
+capture is present from the first checkpoint sampled and no amount of the
+same data changes it. Together with the eighth/ninth runs (no repeat pressure
+in the weights) and the tenth/twelfth (sampler constraints are absorbed at
+the next level), the series' evidence now points one way: **the capture is a
+property of the base model's long-context behaviour under this system
+prompt that the adapter can only delay** — G delays it by ~500 words — and
+neither more of the same data nor a local sampler rule removes it.
+
+### Next step
+
+1. **The last training run: hold it** until there is a candidate that
+   targets something other than the branch mix or exposure. The one
+   unexplored training-side variable that runs 11–13 leave open is the
+   candidate (b) of the twelfth run — the brief branch's contribution to
+   exit A (its short-stop schedule firing inside a ladder). It is a real
+   question, but it targets the *stop*, and the caps are the larger failure.
+2. **Before any further spend, two free measurements:** (i) pre-register and
+   replicate the first-word-reuse instrument on the existing arms (F, G,
+   G+guard, ckpt-62, base, corpus) with the boundary rules written down, so
+   the F → G → ckpt-62 ordering (70 → 52 → 41) either survives or dies
+   without costing a generation; (ii) the base model at the chapter prompt at
+   cap 2560 with the *same* seeds as G — the four base controls on record
+   were 652–819 words, all EOS, and they are the only arm that never
+   captures; whether that holds at n=10 is the question every "the capture is
+   base's" sentence above rests on. **(ii) costs 10 generations and is the
+   best use of the next 10.**
+3. Engine note from the twelfth run stands: nothing here has been sampled at
+   the engine's own settings.
+
+Budget this series: **1/2 training runs, 44/60 generations**, ~132
+GPU-minutes this session. Push still blocked (no credential on the pod).
