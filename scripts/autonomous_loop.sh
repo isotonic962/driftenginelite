@@ -25,7 +25,8 @@ for i in $(seq 1 "$SESSIONS"); do
   echo "=== autonomous session $i/$SESSIONS $(date -u +%FT%TZ) ==="
   git pull --ff-only origin "$BRANCH" 2>/dev/null || true
   timeout "$SESSION_SECONDS" claude -p "$(cat ${CHARTER:-AUTONOMOUS_TASK_v3.md})" \
-      --max-turns "$MAX_TURNS" --dangerously-skip-permissions \
+      --max-turns "$MAX_TURNS" \
+      --allowedTools "Bash,Read,Write,Edit,MultiEdit,Glob,Grep,WebFetch,WebSearch,NotebookEdit,Agent,TodoWrite" \
       |& tee "logs/autonomous_$(date -u +%Y%m%dT%H%M).log"
   rc=$?
   # Belt and braces: the charter says the session pushes, but a session that
