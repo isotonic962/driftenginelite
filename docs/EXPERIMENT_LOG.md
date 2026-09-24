@@ -2742,3 +2742,113 @@ class, and since that class is the same in every slice, no slice removal can
 move it; only a corpus whose plurality opening is not a character subject, or a
 recipe that carries a distribution rather than an argmax (next step 2), could.
 [Interpretive; the measurement is the table, the mechanism is the reading.]
+
+---
+
+## 2026-09-24 (eighteenth run) — variant I, the learning-rate probe. LR is a rate, not a direction: at 5e-5 the sentence-opening prior forms more slowly and lands 7 points lower on base text at step 124, but it forms, and on corpus text it reaches G exactly. Pre-registered rule says stop; the proposal is a distribution-carrying recipe
+
+**Adapter under test:** `/workspace/drift_sft_out_v9/adapter` (variant I), trained
+on the pod 2026-09-22: G's exact recipe (`final_training_corpus_v2_3_ch3x.json`,
+`train_drift_sft_v7.py` hyperparameters) with **one change, `learning_rate`
+2e-4 → 5e-5**, 124 steps, checkpoints 31/62/93/124. **1 of 2 training runs
+spent; 0 of 60 generations spent.** The boundary-mode probe
+(`scripts/boundary_mode.py`) ran on all four checkpoints plus base/F/G, on
+both text types, exactly as the seventeenth run's checkpoint table. Data:
+`eval/boundary_mode_I_checkpoints.json`, `eval/boundary_mode_corpus40_I_checkpoints.json`.
+
+**Provenance note.** The probe ran and was committed on the pod's local
+`pod-autonomous` branch; the pod could not push (no working credentials) and
+its Claude session could not read its own result files (a credential pasted
+into that session tripped its safety filter). The two JSONs were carried off
+the pod by hand via the Jupyter file browser and analysed off-pod; this entry
+was written off-pod. The pod's falsifier lines and the pre-registered
+prediction file are in its local commit and are `[unverified]` here — the
+decision rule quoted below is the one the pod session reported before the
+probe was read: **step-124 pronoun share on base text ≤ 41 → spend
+generations; > 41 → stop and write the proposal.**
+
+### Result — base text (14 base-written chapters, 483 boundaries)
+
+```
+arm     pronoun%  top3%  distinct/100  reuse4%  median_H  top1p   top openings
+base      31.5    68.1        9.9        55.9     0.91    0.71   the 40%  he 20%  she 9%
+F         46.6    68.1        9.7        58.0     2.22    0.45   he 30%   the 27% she 12%
+G         49.9    69.8        8.1        59.4     2.42    0.42   he 32%   the 26% she 12%
+I31       33.5    67.7       10.1        57.6     1.42    0.56   the 39%  he 21%  she 8%
+I62       39.8    68.1        9.1        59.6     1.96    0.48   the 33%  he 25%  she 10%
+I93       42.0    68.3        8.9        59.2     1.97    0.47   the 31%  he 27%  she 11%
+I124      43.1    68.7        8.9        59.2     2.04    0.47   the 31%  he 27%  she 11%
+```
+
+### Result — corpus text (40 chapter targets, 2802 boundaries)
+
+```
+arm     pronoun%  top3%  distinct/100  reuse4%  median_H  top1p   top openings
+base      53.2    48.4        4.7        56.7     2.37    0.39   the 18%  he 16%  she 14%
+F         62.4    49.7        5.0        59.2     3.64    0.25   he 22%   she 14% i 14%
+G         61.3    48.1        4.7        59.5     3.53    0.25   he 22%   she 14% i 13%
+I31       56.9    48.3        4.4        59.4     3.07    0.31   he 18%   the 16% she 15%
+I62       60.1    48.9        4.7        60.8     3.61    0.26   he 19%   she 16% i 14%
+I93       62.0    50.4        4.7        61.0     3.55    0.26   he 21%   she 16% i 13%
+I124      62.9    50.9        4.7        61.2     3.56    0.26   he 21%   she 16% i 10%
+```
+
+### Reading
+
+**Decision rule: I124 = 43.1 on base text. > 41. STOP.**
+
+Three things the table says:
+
+1. **LR sets the speed of the collapse, not its destination.** On base text the
+   prior forms at roughly a quarter of G's pace (I31 = 33.5 is within 2 points
+   of base, where H28 was already at 43.3) and lands at 43.1 — 6.8 points
+   below G but 11.6 above base — with the curve still rising at step 124.
+   On corpus text I124 (62.9) is G (61.3) to the noise. The greedy mode has
+   flipped from `the` to `he` on corpus text by step 62 and is halfway there
+   on base text. Same shape, slower clock.
+2. **Boundary entropy tells the same story:** base 0.91 → I31 1.42 → I124 2.04
+   (G 2.42) on base text; on corpus text I62 onward is indistinguishable from
+   F/G. The flattening the fifteenth run found is not an LR artifact either.
+3. **I31 is the least-distorted adapter ever measured** — near-base on every
+   axis — but whether it carries any of the corpus register or sustain is
+   unknown, because the rule forbids sampling and nothing static measures
+   sustain. Recorded as open, not as a lead: the seventeenth run showed the
+   half-epoch checkpoint at full LR already carried two-thirds of the shift,
+   and I31 at a quarter of that LR is plausibly just under-trained rather than
+   differently trained.
+
+**Verdict: ESTABLISHED, and it closes the LR lever in the negative.** The
+opening-prior collapse is a property of the objective, reached faster or
+slower depending on step size. No inference-time fix has survived (runs 10,
+12, 16) and no data-side fix has survived (runs 11, 17): the argmax collapse
+onto the corpus's plurality opening is what plain SFT does here.
+
+### The proposal (charter item 4 — costed, not run)
+
+**A recipe that carries a distribution rather than an argmax: KL-regularized
+SFT against the base model.** Add to G's loss, on response tokens only,
+`β · KL( p_base(·|ctx) ‖ p_tuned(·|ctx) )` — the base distribution obtained on
+the same batch under `model.disable_adapter()`, so no second model in memory.
+This penalises exactly the thing measured: mass moving off base's boundary
+distribution onto a single opening.
+
+- **One change vs G:** the loss term. Start β = 0.1; hold everything else.
+- **Cost:** two forward passes per step → ~2× G's 62 min on the L4 (~2 h), or
+  ~1 h on the 4090. Peak memory unchanged (no reference model). **1 training
+  run — the last of this budget.**
+- **Score before sampling, same instrument, every half-epoch:** success is
+  pronoun share on base text within ~5 points of base (≤ 36.5) at step 124
+  AND chapter-target NLL (`scripts/target_nll.py`) still below base's — i.e.
+  it learns the corpus without the collapse. Both static, both free.
+- **Only if both hold:** spend generations, 10 chapters, scored on capture
+  word, chapter-length EOS, register, 3-brief spot check, against G.
+- **Fallbacks if β = 0.1 either fails to learn or fails to hold:** β sweep is
+  a second run and is out of budget; the alternative in the same family is
+  mixing base-generated chapter text into the corpus (self-distillation
+  regularisation), which needs no loss change but does need ~50 base
+  generations — i.e. it costs the generation budget instead.
+
+**Engine:** unchanged. F stays the production adapter for the brief prompt;
+G is the best chapter adapter on record; I is not to be deployed.
+
+Budget this series: **1/2 training runs, 0/60 generations.**

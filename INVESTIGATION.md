@@ -11,9 +11,13 @@ a human triggers both. Protocol:
   is the point — it is what stops the next session re-running a dead test.
 - Numbers only. If a claim has no run behind it, mark it `[unverified]`.
 
-Last updated: 2026-09-22, after merging main (runs 8-9, corridor recalibration,
-turn-scale scorer, guard-run script). **The anaphora-hazard verdict below is
-RETRACTED by the ninth run** — see docs/EXPERIMENT_LOG.md. Current live picture:
+Last updated: 2026-09-24, eighteenth run (variant I, the LR probe) in
+docs/EXPERIMENT_LOG.md. **LR is closed in the negative:** at 5e-5 the
+sentence-opening prior forms slower (I124 pronoun share 43.1 on base text vs
+G 49.9, base 31.5) but forms, and matches G on corpus text. Pre-registered
+rule fired: stop, no generations. The costed proposal on record is
+KL-regularized SFT against the base model (one loss term, ~2x train time,
+scored statically before any sampling). Earlier picture below still holds:
 
 - The ninth run teacher-forced BASE's own four clean chapter generations
   (652-819 w, all EOS, zero loops) through the adapter: **ELEV is positive
