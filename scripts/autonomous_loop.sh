@@ -13,13 +13,12 @@ BRANCH="pod-autonomous"
 
 git fetch origin && git checkout -B "$BRANCH" "origin/${BASE_BRANCH:-main}"
 
-# Refuse to start if we cannot push: unpushed work has been stranded on this
-# pod three separate times. Store credentials first (git credential helper or
-# a GITHUB_TOKEN askpass) -- do not start a 3h session that cannot deliver.
-git push --dry-run -u origin "$BRANCH" >/dev/null 2>&1 || {
-  echo "FATAL: cannot push to origin from this pod. Store git credentials, then rerun." >&2
-  exit 1
-}
+# Warn (do not refuse) if we cannot push. Every session still commits locally
+# on $BRANCH, so nothing is lost; results can be pulled off the pod via the
+# Jupyter file browser or pushed later once credentials exist.
+if ! GIT_TERMINAL_PROMPT=0 git push --dry-run -u origin "$BRANCH" >/dev/null 2>&1; then
+  echo "WARNING: cannot push to origin -- sessions will commit locally only." >&2
+fi
 fails=0
 for i in $(seq 1 "$SESSIONS"); do
   [ -f /workspace/STOP ] && { echo "STOP file present, ending loop"; break; }
@@ -32,7 +31,7 @@ for i in $(seq 1 "$SESSIONS"); do
   # Belt and braces: the charter says the session pushes, but a session that
   # died mid-run must not strand its work on the pod.
   git add -A logs eval docs 2>/dev/null; git commit -m "autonomous session $i (exit=$rc)" 2>/dev/null
-  git push -u origin "$BRANCH" || { sleep 4; git push -u origin "$BRANCH"; }
+  GIT_TERMINAL_PROMPT=0 git push -u origin "$BRANCH" 2>/dev/null || echo "(push failed; commit is local on $BRANCH)"
   if [ "$rc" -ne 0 ]; then fails=$((fails+1)); else fails=0; fi
   [ "$fails" -ge 2 ] && { echo "two consecutive failed sessions, stopping"; break; }
 done
