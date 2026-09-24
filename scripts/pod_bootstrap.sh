@@ -38,7 +38,25 @@ git config --global credential.helper "store --file /workspace/.git-credentials"
 git config --global user.name  >/dev/null 2>&1 || git config --global user.name  "isotonic962"
 git config --global user.email >/dev/null 2>&1 || git config --global user.email "niklaserikgranberg@gmail.com"
 
-command -v claude >/dev/null 2>&1 || curl -fsSL https://claude.ai/install.sh | bash
+# Claude install persisted on /workspace: download once ever, restore by
+# symlink on every later boot ($HOME dies with the container; /workspace not).
+mkdir -p ~/.local/bin ~/.local/share
+if ! command -v claude >/dev/null 2>&1; then
+  if [ -e /workspace/claude-install/share ]; then
+    ln -sfn /workspace/claude-install/share ~/.local/share/claude
+    cp -aP /workspace/claude-install/bin-claude ~/.local/bin/claude
+  else
+    curl -fsSL https://claude.ai/install.sh | bash
+    export PATH="$HOME/.local/bin:$PATH"
+    # move the freshly installed tree onto the volume and link back to it
+    if [ -d ~/.local/share/claude ] && [ -e ~/.local/bin/claude ]; then
+      mkdir -p /workspace/claude-install
+      cp -aP ~/.local/bin/claude /workspace/claude-install/bin-claude
+      mv ~/.local/share/claude /workspace/claude-install/share
+      ln -sfn /workspace/claude-install/share ~/.local/share/claude
+    fi
+  fi
+fi
 export PATH="$HOME/.local/bin:$PATH"
 
 echo "── status ──────────────────────────────────────"
