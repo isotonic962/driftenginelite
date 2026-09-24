@@ -62,7 +62,7 @@ export PATH="$HOME/.local/bin:$PATH"
 echo "── status ──────────────────────────────────────"
 claude --version 2>/dev/null || echo "claude: INSTALL FAILED"
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null || echo "gpu: none visible"
-if git -C /workspace/driftenginelite push --dry-run origin HEAD >/dev/null 2>&1; then
+if GIT_TERMINAL_PROMPT=0 git -C /workspace/driftenginelite push --dry-run origin HEAD >/dev/null 2>&1; then
   echo "git push: OK (token in /workspace/.git-credentials, survives restarts)"
 else
   echo "git push: NOT SET UP -- one time only:"
